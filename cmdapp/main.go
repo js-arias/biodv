@@ -17,6 +17,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 )
 
 // Name stores the application name,
@@ -25,6 +27,39 @@ var Name = filepath.Base(os.Args[0])
 
 // Short is a short description of the application.
 var Short string
+
+// Commands is the list of available commands
+// and help topics.
+var (
+	mutex    sync.Mutex
+	commands = make(map[string]*Command)
+)
+
+// Add adds a new command to the application.
+// Command names should be unique,
+// otherwise it will trigger a panic.
+func Add(c *Command) {
+	name := strings.ToLower(c.Name())
+	if name == "" {
+		msg := fmt.Sprintf("cmdapp: Empty command name: %s", c.Short)
+		panic(msg)
+	}
+	if getCmd(name) != nil {
+		msg := fmt.Sprintf("cmdapp: Repeated command name: %s %s", name, c.Short)
+		panic(msg)
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
+	commands[name] = c
+}
+
+// GetCmd returns a command with a given name.
+func getCmd(name string) *Command {
+	name = strings.ToLower(name)
+	mutex.Lock()
+	defer mutex.Unlock()
+	return commands[name]
+}
 
 // Main runs the application.
 func Main() {
