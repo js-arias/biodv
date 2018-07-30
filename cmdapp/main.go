@@ -17,6 +17,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -63,10 +64,36 @@ func getCmd(name string) *Command {
 
 // Main runs the application.
 func Main() {
+	help.Short = "display help information about " + Name
+	Add(help)
+
 	flag.Usage = usage
 	flag.Parse()
 
-	usage()
+	args := flag.Args()
+	if len(args) == 0 {
+		usage()
+	}
+
+	c := getCmd(args[0])
+	if c == nil || !c.runnable() {
+		fmt.Fprintf(os.Stderr, "%s: unknown subcommand %q\nRun '%s help' for usage.\n", Name, args[0], Name)
+		os.Exit(1)
+	}
+
+	args = args[1:]
+	if c.RegisterFlags != nil {
+		c.Flag = flag.NewFlagSet(c.Name(), flag.ExitOnError)
+		c.Flag.Usage = func() { c.Usage() }
+		c.RegisterFlags(c)
+		c.Flag.Parse(args)
+		args = c.Flag.Args()
+	}
+
+	if err := c.Run(c, args); err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", Name, c.Name())
+		os.Exit(1)
+	}
 }
 
 // Usage prints application help and exists.
@@ -78,4 +105,40 @@ func usage() {
 // PrintUsage prints the application usage help.
 func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "%s\n\n", Short)
+	fmt.Fprintf(w, "Usage:\n\n    %s [help] <command> [<args>...]\n\n", Name)
+
+	topics := false
+	fmt.Fprintf(w, "The commands are:\n")
+	mutex.Lock()
+	defer mutex.Unlock()
+	var cmds []string
+	for cn, c := range commands {
+		cmds = append(cmds, cn)
+		if !c.runnable() {
+			topics = true
+		}
+	}
+	sort.Strings(cmds)
+
+	for _, cn := range cmds {
+		c := commands[cn]
+		if !c.runnable() {
+			continue
+		}
+		fmt.Fprintf(w, "    %-16s %s\n", c.Name(), c.Short)
+	}
+	fmt.Fprintf(w, "\nUse '%s help <command>' for more information about a command.\n\n", Name)
+
+	if !topics {
+		return
+	}
+	fmt.Fprintf(w, "Additional help topics:\n\n")
+	for _, cn := range cmds {
+		c := commands[cn]
+		if c.runnable() {
+			continue
+		}
+		fmt.Fprintf(w, "    %-16s %s\n", c.Name(), c.Short)
+	}
+	fmt.Fprintf(w, "\nUse '%s help <topic>' for more information about that topic.\n\n", Name)
 }
