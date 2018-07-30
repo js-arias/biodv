@@ -91,7 +91,7 @@ func Main() {
 	}
 
 	if err := c.Run(c, args); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", Name, c.Name())
+		fmt.Fprintf(os.Stderr, "%s: %v\n", Name, err)
 		os.Exit(1)
 	}
 }
