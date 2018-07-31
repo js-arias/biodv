@@ -1,0 +1,215 @@
+// Copyright (c) 2018 The Biodv Authors.
+// All rights reserved.
+// Distributed under BSD2 license that can be found in the LICENSE file.
+//
+// Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
+
+package gbif
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/js-arias/biodv"
+
+	"github.com/pkg/errors"
+)
+
+func init() {
+	biodv.RegisterTax("gbif", OpenTax)
+}
+
+// OpenTax returns the GBIF
+// taxonomy handler,
+// that implements the biodv.Taxonomy interface.
+func OpenTax(string) (biodv.Taxonomy, error) {
+	if reqChan == nil {
+		initReqs()
+	}
+	return database{}, nil
+}
+
+// SpAnswer is the answer for the species request.
+type spAnswer struct {
+	Offset, Limit int64
+	EndOfRecords  bool
+	Results       []*species
+}
+
+// Species stores the GBIF taxonomic information.
+// It implements the biodv.Taxonomy interface.
+type species struct {
+	Key, NubKey, AcceptedKey int64  // id
+	CanonicalName            string // name
+	Authorship               string // author
+	RankStr                  string `json:"rank"`
+	Synonym                  bool   // correct
+	DatasetKey               string // source
+	ParentKey                int64  // parent
+	PublishedIn              string // reference
+
+	//parents
+	KingdomKey int64
+	PhylumKey  int64
+	ClassKey   int64
+	OrderKey   int64
+	FamilyKey  int64
+	GenusKey   int64
+
+	Kingdom string
+	Phylum  string
+	Clazz   string
+	Order   string
+	Family  string
+	Genus   string
+}
+
+func (sp *species) Name() string {
+	return sp.CanonicalName
+}
+
+func (sp *species) ID() string {
+	return strconv.FormatInt(sp.NubKey, 10)
+}
+
+func (sp *species) Parent() string {
+	if sp.Synonym {
+		return strconv.FormatInt(sp.AcceptedKey, 10)
+	}
+	if sp.ParentKey == 0 {
+		return ""
+	}
+	return strconv.FormatInt(sp.ParentKey, 10)
+}
+
+func (sp *species) Rank() biodv.Rank {
+	return biodv.GetRank(sp.RankStr)
+}
+
+func (sp *species) IsCorrect() bool {
+	return !sp.Synonym
+}
+
+func (sp *species) Keys() []string {
+	return []string{
+		biodv.TaxAuthor,
+		biodv.TaxRef,
+		biodv.TaxSource,
+	}
+}
+
+func (sp *species) Value(key string) string {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case biodv.TaxAuthor:
+		return sp.Authorship
+	case biodv.TaxRef:
+		return sp.PublishedIn
+	case biodv.TaxSource:
+		return sp.DatasetKey
+	}
+	return ""
+}
+
+func (db database) Taxon(name string) ([]biodv.Taxon, error) {
+	name = strings.Join(strings.Fields(name), " ")
+	if name == "" {
+		return nil, errors.Errorf("gbif: taxonomy: empty taxon name")
+	}
+	req := "species?"
+	param := url.Values{}
+	param.Add("name", name)
+	param.Add("limit", "300")
+	return taxonList(req, param)
+}
+
+func taxonList(reqstr string, param url.Values) ([]biodv.Taxon, error) {
+	var ls []biodv.Taxon
+	var err error
+	end := false
+	for off := int64(0); !end; {
+		if off > 0 {
+			param.Set("offset", strconv.FormatInt(off, 10))
+		}
+		retryErr := true
+		for r := 0; r < Retry; r++ {
+			req := newRequest(reqstr + param.Encode())
+			select {
+			case err = <-req.err:
+				continue
+			case a := <-req.ans:
+				var resp *spAnswer
+				resp, err = decodeTaxonList(&a)
+				if err != nil {
+					continue
+				}
+
+				for _, sp := range resp.Results {
+					// Some taxons,
+					// usually invalid,
+					// does not have
+					// an explicit nubKey.
+					if sp.NubKey == 0 {
+						sp.NubKey = sp.Key
+					}
+					if sp.Key != sp.NubKey {
+						continue
+					}
+					ls = append(ls, sp)
+				}
+
+				// end retry loop
+				r = Retry
+				retryErr = false
+				if resp.EndOfRecords {
+					end = true
+				}
+				off += resp.Limit
+			}
+		}
+
+		if retryErr {
+			if err == nil {
+				return nil, errors.Errorf("gbif: taxonomy: no answer after %d retries", Retry)
+			}
+			return nil, errors.Wrap(err, "gbif: taxonomy")
+		}
+	}
+	return ls, nil
+}
+
+func decodeTaxonList(b *bytes.Buffer) (*spAnswer, error) {
+	d := json.NewDecoder(b)
+	resp := &spAnswer{}
+	err := d.Decode(resp)
+	return resp, err
+}
+
+func (db database) TaxID(id string) (biodv.Taxon, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, errors.Errorf("gbif: taxonomy: empty taxon ID")
+	}
+	var err error
+	for r := 0; r < Retry; r++ {
+		req := newRequest("species/" + id)
+		select {
+		case err = <-req.err:
+			continue
+		case a := <-req.ans:
+			d := json.NewDecoder(&a)
+			sp := &species{}
+			err = d.Decode(sp)
+			if err != nil {
+				continue
+			}
+			return sp, nil
+		}
+	}
+	if err == nil {
+		return nil, errors.Errorf("gbif: taxonomy: no answer after %d retries", Retry)
+	}
+	return nil, errors.Wrap(err, "gbif: taxonomy")
+}
