@@ -44,6 +44,7 @@ type spAnswer struct {
 type species struct {
 	Key, NubKey, AcceptedKey int64  // id
 	CanonicalName            string // name
+	ScientificName           string // for cases in which canonical is not defined
 	Authorship               string // author
 	RankStr                  string `json:"rank"`
 	Synonym                  bool   // correct
@@ -68,6 +69,9 @@ type species struct {
 }
 
 func (sp *species) Name() string {
+	if sp.CanonicalName == "" {
+		return sp.ScientificName
+	}
 	return sp.CanonicalName
 }
 
@@ -204,6 +208,13 @@ func (db database) TaxID(id string) (biodv.Taxon, error) {
 			err = d.Decode(sp)
 			if err != nil {
 				continue
+			}
+			// Some taxons,
+			// usually invalid,
+			// does not have
+			// an explicit nubKey.
+			if sp.NubKey == 0 {
+				sp.NubKey = sp.Key
 			}
 			return sp, nil
 		}
