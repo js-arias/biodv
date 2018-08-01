@@ -149,7 +149,7 @@ func run(c *cmdapp.Command, args []string) error {
 			return errors.Wrap(err, c.Name())
 		}
 		if len(ls) > 0 {
-			fmt.Fprintf(os.Stderr, "\tContained taxa:\n")
+			fmt.Fprintf(os.Stderr, "\tContained taxa (%d):\n", len(ls))
 		}
 		for _, child := range ls {
 			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", child.Name(), child.Value(biodv.TaxAuthor), dbName, child.ID())
