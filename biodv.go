@@ -10,6 +10,7 @@
 package biodv
 
 import (
+	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -20,10 +21,19 @@ import (
 // A Taxonomy is a taxonomy database.
 type Taxonomy interface {
 	// Taxon returns a list of taxons with a given name.
-	Taxon(name string) ([]Taxon, error)
+	Taxon(name string) *TaxScan
 
 	// TaxID returns the taxon with a given ID.
 	TaxID(id string) (Taxon, error)
+
+	// Synonyms returns a list taxons synonyms of a given ID.
+	Synonyms(id string) *TaxScan
+
+	// Children returns a list of taxon children of a given ID,
+	// if the ID is empty,
+	// it will return the taxons attached to the root
+	// of the taxonomy.
+	Children(id string) *TaxScan
 }
 
 // DriverTax is a function for
@@ -112,6 +122,134 @@ const (
 	TaxRef    = "reference"
 	TaxSource = "source"
 )
+
+// A TaxScan is a taxon scanner
+// to stream the results of a quary
+// that are expected to produce
+// a taxon list.
+//
+// Use Scan to advance the stram:
+//
+//	sc, err := txm.Taxon("Rhinella")
+//	for sc.Scan() {
+//		tax := sc.Taxon()
+//		...
+//	}
+//	if err := sc.Err(); err != nil {
+//		...	// process the error
+//	}
+type TaxScan struct {
+	// the taxon channel
+	c chan Taxon
+
+	// an error encountered during iteration
+	err error
+
+	// closed if true is the scanner is closed.
+	closed bool
+
+	// tax is the last read taxon.
+	tax Taxon
+}
+
+// NewTaxScan creates a taxon scanner,
+// with a buffer of the indicated size.
+func NewTaxScan(sz int) *TaxScan {
+	if sz < 10 {
+		sz = 10
+	}
+	return &TaxScan{c: make(chan Taxon, sz)}
+}
+
+// Add adds a taxon or an error
+// to a taxon scanner.
+// It should be used by clients that
+// return the scanner.
+//
+// It returns true,
+// if the element is added succesfully.
+func (tsc *TaxScan) Add(tax Taxon, err error) bool {
+	if tsc.err != nil {
+		return false
+	}
+	if tsc.closed {
+		return false
+	}
+	if err != nil {
+		close(tsc.c)
+		tsc.err = err
+		return true
+	}
+	tsc.c <- tax
+	return true
+}
+
+// Close closes the scanner.
+// If Scan is called and returns false
+// the scanner is closed automatically.
+func (tsc *TaxScan) Close() {
+	if tsc.closed {
+		return
+	}
+	if tsc.err != nil {
+		return
+	}
+	close(tsc.c)
+	tsc.closed = true
+}
+
+// Err returns the errors,
+// if any,
+// that was encountered during iteration.
+func (tsc *TaxScan) Err() error {
+	if !tsc.closed {
+		return nil
+	}
+	if errors.Cause(tsc.err) == io.EOF {
+		return nil
+	}
+	return tsc.err
+}
+
+// Scan advances the scanner to the next result.
+// It returns false when there is no more taxons,
+// or an error happens when preparing it.
+// Err should be consulted to distinguish
+// between the two cases.
+//
+// Every call to Taxon,
+// even the first one,
+// must be precede by a call to Scan.
+func (tsc *TaxScan) Scan() bool {
+	if tsc.closed {
+		return false
+	}
+	tsc.tax = <-tsc.c
+	if tsc.tax == nil {
+		tsc.closed = true
+		if tsc.err == nil {
+			tsc.err = io.EOF
+			close(tsc.c)
+		}
+		return false
+	}
+	return true
+}
+
+// Taxon returns the last read taxon.
+// Every call to Taxon must be preceded
+// by a call to Scan.
+func (tsc *TaxScan) Taxon() Taxon {
+	if tsc.closed {
+		panic("biodv: accessing a closed taxon scanner")
+	}
+	tax := tsc.tax
+	tsc.tax = nil
+	if tax == nil {
+		panic("biodv: calling taxon withon an Scan call")
+	}
+	return tax
+}
 
 // Rank is a linnean rank.
 // Ranks are arranged in a way that

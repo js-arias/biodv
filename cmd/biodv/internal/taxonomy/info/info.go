@@ -16,8 +16,6 @@ import (
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
 
-	_ "github.com/js-arias/biodv/driver/gbif"
-
 	"github.com/pkg/errors"
 )
 
@@ -56,16 +54,16 @@ func init() {
 	cmdapp.Add(cmd)
 }
 
-var db string
+var dbName string
 var id string
 
 func register(c *cmdapp.Command) {
-	c.Flag.StringVar(&db, "db", "", "")
+	c.Flag.StringVar(&dbName, "db", "", "")
 	c.Flag.StringVar(&id, "id", "", "")
 }
 
 func run(c *cmdapp.Command, args []string) error {
-	if db == "" {
+	if dbName == "" {
 		return errors.Errorf("%s: a database must be defined", c.Name())
 	}
 	nm := strings.Join(args, " ")
@@ -73,7 +71,7 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
 	}
 
-	db, err := biodv.OpenTax(db, "")
+	db, err := biodv.OpenTax(dbName, "")
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
@@ -85,21 +83,25 @@ func run(c *cmdapp.Command, args []string) error {
 			return errors.Wrap(err, c.Name())
 		}
 	} else {
-		ls, err := db.Taxon(nm)
-		if err != nil {
+		sc := db.Taxon(nm)
+		i := 0
+		for sc.Scan() {
+			if i == 1 {
+				fmt.Fprintf(os.Stderr, "ambiguous name:\n")
+				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\n", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
+			}
+			tax = sc.Taxon()
+			if i > 0 {
+				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\n", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
+			}
+			i++
+		}
+		if err := sc.Err(); err != nil {
 			return errors.Wrap(err, c.Name())
 		}
-		if len(ls) == 0 {
+		if tax == nil || i > 1 {
 			return nil
 		}
-		if len(ls) > 1 {
-			fmt.Fprintf(os.Stderr, "ambiguous name:\n")
-			for _, tx := range ls {
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\n", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
-			}
-			return nil
-		}
-		tax = ls[0]
 	}
 	var p biodv.Taxon
 	if pID := tax.Parent(); pID != "" {
@@ -109,15 +111,37 @@ func run(c *cmdapp.Command, args []string) error {
 		}
 	}
 	fmt.Printf("%s %s\n", tax.Name(), tax.Value(biodv.TaxAuthor))
-	fmt.Printf("ID: %s\n", tax.ID())
+	fmt.Printf("%s-ID: %s\n", dbName, tax.ID())
+	fmt.Printf("\tRank: %s\n", tax.Rank())
 	if tax.IsCorrect() {
 		fmt.Printf("\tCorrect-Valid name\n")
+		sc := db.Synonyms(tax.ID())
+		for sc.Scan() {
+			syn := sc.Taxon()
+			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", syn.Name(), syn.Value(biodv.TaxAuthor), dbName, syn.ID())
+		}
+		if err := sc.Err(); err != nil {
+			return errors.Wrap(err, c.Name())
+		}
 	} else {
-		fmt.Printf("\tSynonym of %s %s [%s]\n", p.Name(), p.Value(biodv.TaxAuthor), p.ID())
+		fmt.Printf("\tSynonym of %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
 	}
-	fmt.Printf("\tRank: %s\n", tax.Rank())
 	if p != nil && tax.IsCorrect() {
-		fmt.Printf("\tParent: %s %s [%s]\n", p.Name(), p.Value(biodv.TaxAuthor), p.ID())
+		fmt.Printf("\tParent: %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
+
+		sc := db.Children(tax.ID())
+		i := 0
+		for sc.Scan() {
+			if i == 0 {
+				fmt.Fprintf(os.Stderr, "\tContained taxa:\n")
+			}
+			child := sc.Taxon()
+			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", child.Name(), child.Value(biodv.TaxAuthor), dbName, child.ID())
+			i++
+		}
+		if err := sc.Err(); err != nil {
+			return errors.Wrap(err, c.Name())
+		}
 	}
 	return nil
 }

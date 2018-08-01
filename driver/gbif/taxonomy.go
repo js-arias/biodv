@@ -117,20 +117,50 @@ func (sp *species) Value(key string) string {
 	return ""
 }
 
-func (db database) Taxon(name string) ([]biodv.Taxon, error) {
+func (db database) Taxon(name string) *biodv.TaxScan {
+	sc := biodv.NewTaxScan(300)
 	name = strings.Join(strings.Fields(name), " ")
 	if name == "" {
-		return nil, errors.Errorf("gbif: taxonomy: empty taxon name")
+		sc.Add(nil, errors.Errorf("gbif: taxonomy: empty taxon name"))
+		return sc
 	}
 	req := "species?"
 	param := url.Values{}
 	param.Add("name", name)
 	param.Add("limit", "300")
-	return taxonList(req, param)
+	go taxonList(sc, req, param)
+	return sc
 }
 
-func taxonList(reqstr string, param url.Values) ([]biodv.Taxon, error) {
-	var ls []biodv.Taxon
+func (db database) Children(id string) *biodv.TaxScan {
+	sc := biodv.NewTaxScan(300)
+	id = strings.TrimSpace(id)
+	if id == "" || id == "0" {
+		go db.rootTaxons(sc)
+		return nil
+	}
+	req := "species/" + id + "/children?"
+	param := url.Values{}
+	param.Add("limit", "300")
+	go taxonList(sc, req, param)
+	return sc
+}
+
+func (db database) Synonyms(id string) *biodv.TaxScan {
+	sc := biodv.NewTaxScan(300)
+	id = strings.TrimSpace(id)
+	if id == "" || id == "0" {
+		sc.Add(nil, errors.Errorf("gbif: taxonomy: invalid ID for synonyms"))
+		return sc
+	}
+	req := "species/" + id + "/synonyms?"
+	param := url.Values{}
+	param.Add("limit", "300")
+	go taxonList(sc, req, param)
+	return sc
+}
+
+func taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 	var err error
 	end := false
 	for off := int64(0); !end; {
@@ -161,7 +191,9 @@ func taxonList(reqstr string, param url.Values) ([]biodv.Taxon, error) {
 					if sp.Key != sp.NubKey {
 						continue
 					}
-					ls = append(ls, sp)
+					if !sc.Add(sp, nil) {
+						return
+					}
 				}
 
 				// end retry loop
@@ -176,12 +208,13 @@ func taxonList(reqstr string, param url.Values) ([]biodv.Taxon, error) {
 
 		if retryErr {
 			if err == nil {
-				return nil, errors.Errorf("gbif: taxonomy: no answer after %d retries", Retry)
+				sc.Add(nil, errors.Errorf("gbif: taxonomy: no answer after %d retries", Retry))
 			}
-			return nil, errors.Wrap(err, "gbif: taxonomy")
+			sc.Add(nil, errors.Wrap(err, "gbif: taxonomy"))
+			return
 		}
 	}
-	return ls, nil
+	sc.Add(nil, nil)
 }
 
 func decodeTaxonList(b *bytes.Buffer) (*spAnswer, error) {
@@ -189,6 +222,28 @@ func decodeTaxonList(b *bytes.Buffer) (*spAnswer, error) {
 	resp := &spAnswer{}
 	err := d.Decode(resp)
 	return resp, err
+}
+
+func (db database) rootTaxons(sc *biodv.TaxScan) {
+	var kingdoms = []string{
+		"1", // Animalia
+		"2", // Archaea
+		"3", // Bacteria
+		"4", // Chromista
+		"5", // Fungi
+		"6", // Plantae
+		"7", // Protozoa
+		"8", // Viruses
+	}
+	for _, id := range kingdoms {
+		tax, err := db.TaxID(id)
+		if err != nil {
+			sc.Add(nil, err)
+			break
+		}
+		sc.Add(tax, nil)
+	}
+	sc.Add(nil, nil)
 }
 
 func (db database) TaxID(id string) (biodv.Taxon, error) {

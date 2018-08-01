@@ -10,7 +10,11 @@ package main
 import (
 	"github.com/js-arias/biodv/cmdapp"
 
+	// add commands in each metapackage
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy"
+
+	// load drivers
+	_ "github.com/js-arias/biodv/driver/gbif"
 )
 
 func main() {

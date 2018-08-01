@@ -1,0 +1,122 @@
+// Copyright (c) 2018 The Biodv Authors.
+// All rights reserved.
+// Distributed under BSD2 license that can be found in the LICENSE file.
+//
+// Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
+
+package biodv
+
+import (
+	"testing"
+
+	"github.com/pkg/errors"
+)
+
+type mockTaxon string
+
+func (mt mockTaxon) Name() string {
+	return string(mt)
+}
+
+func (mt mockTaxon) ID() string              { return "" }
+func (mt mockTaxon) Parent() string          { return "" }
+func (mt mockTaxon) Rank() Rank              { return Unranked }
+func (mt mockTaxon) IsCorrect() bool         { return true }
+func (mt mockTaxon) Keys() []string          { return nil }
+func (mt mockTaxon) Value(key string) string { return "" }
+
+var mockTaxList = []string{
+	"Homo",
+	"Pan",
+	"Pongo",
+	"Gorilla",
+	"Hylobates",
+}
+
+func TestTaxScan(t *testing.T) {
+
+	// Expected TaxScan usage
+	sc := NewTaxScan(10)
+	go func(x *TaxScan) {
+		for _, s := range mockTaxList {
+			if !x.Add(mockTaxon(s), nil) {
+				break
+			}
+		}
+		x.Add(nil, nil)
+	}(sc)
+
+	c := 0
+	for sc.Scan() {
+		tax := sc.Taxon()
+		if tax.Name() != mockTaxList[c] {
+			t.Errorf("taxon name %q, want %q", tax.Name(), mockTaxList[c])
+		}
+		c++
+	}
+	if err := sc.Err(); err != nil {
+		t.Errorf("taxscan unexpected error: %v", err)
+	}
+	if len(mockTaxList) != c {
+		t.Errorf("scanned taxons %d, want %d", len(mockTaxList), c)
+	}
+
+	// Closing TaxScan before finish
+	sc = NewTaxScan(10)
+	go func(x *TaxScan) {
+		for _, s := range mockTaxList {
+			if !x.Add(mockTaxon(s), nil) {
+				break
+			}
+		}
+		x.Add(nil, nil)
+	}(sc)
+
+	c = 0
+	for sc.Scan() {
+		tax := sc.Taxon()
+		if tax.Name() != mockTaxList[c] {
+			t.Errorf("taxon name %q, want %q", tax.Name(), mockTaxList[c])
+		}
+		c++
+		if tax.Name() == "Pongo" {
+			sc.Close()
+		}
+	}
+	if err := sc.Err(); err != nil {
+		t.Errorf("taxscan unexpected error: %v", err)
+	}
+	if c > 3 {
+		t.Errorf("scanned taxons %d, want %d", c, 3)
+	}
+
+	// An error received during iteration
+	sc = NewTaxScan(10)
+	go func(x *TaxScan) {
+		for _, s := range mockTaxList {
+			if s == "Pongo" {
+				x.Add(nil, errors.New("mock error"))
+				return
+			}
+			if !x.Add(mockTaxon(s), nil) {
+				break
+			}
+		}
+		x.Add(nil, nil)
+	}(sc)
+
+	c = 0
+	for sc.Scan() {
+		tax := sc.Taxon()
+		if tax.Name() != mockTaxList[c] {
+			t.Errorf("taxon name %q, want %q", tax.Name(), mockTaxList[c])
+		}
+		c++
+	}
+	if err := sc.Err(); err == nil {
+		t.Errorf("taxscan expecting error")
+	}
+	if c > 2 {
+		t.Errorf("scanned taxons %d, want %d", c, 2)
+	}
+}
