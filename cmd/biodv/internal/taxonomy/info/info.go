@@ -113,6 +113,21 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 	fmt.Printf("%s %s\n", tax.Name(), tax.Value(biodv.TaxAuthor))
 	fmt.Printf("%s-ID: %s\n", dbName, tax.ID())
+	pLs, err := biodv.TaxParents(db, tax.Parent())
+	if err != nil {
+		return errors.Wrap(err, c.Name())
+	}
+	for i, pt := range pLs {
+		if i > 0 {
+			fmt.Printf(" > ")
+		}
+		if pt.Rank() != biodv.Unranked {
+			fmt.Printf("%s: %s", pt.Rank(), pt.Name())
+		}
+	}
+	if len(pLs) > 0 {
+		fmt.Printf("\n")
+	}
 	fmt.Printf("\tRank: %s\n", tax.Rank())
 	if tax.IsCorrect() {
 		fmt.Printf("\tCorrect-Valid name\n")

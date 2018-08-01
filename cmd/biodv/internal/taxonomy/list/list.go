@@ -21,7 +21,7 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: `tax.list [--db <database>] [--id <value>] [-m|--machine]
-		[-s|--synonym] [-v|--verbose] [<name>]`,
+		[-p|--parents] [-s|--synonym] [-v|--verbose] [<name>]`,
 	Short: "prints a list of taxons",
 	Long: `
 Command tax.list prints a list of the contained taxa of a given taxon
@@ -54,6 +54,10 @@ Options are:
     --machine
       If set, only the IDs of the taxons will be printed.
 
+    -p
+    --parents
+      If set, a list of parents of the taxon will be produced.
+
     -s
     --synonyms
       If set, a list of synonyms of the taxon, instead of contained
@@ -79,6 +83,7 @@ func init() {
 var dbName string
 var id string
 var machine bool
+var parents bool
 var synonyms bool
 var verbose bool
 
@@ -87,6 +92,8 @@ func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&id, "id", "", "")
 	c.Flag.BoolVar(&machine, "machine", false, "")
 	c.Flag.BoolVar(&machine, "m", false, "")
+	c.Flag.BoolVar(&parents, "parents", false, "")
+	c.Flag.BoolVar(&parents, "p", false, "")
 	c.Flag.BoolVar(&synonyms, "synonyms", false, "")
 	c.Flag.BoolVar(&synonyms, "s", false, "")
 	c.Flag.BoolVar(&verbose, "verbose", false, "")
@@ -100,6 +107,9 @@ func run(c *cmdapp.Command, args []string) error {
 
 	if machine && verbose {
 		return errors.Errorf("%s: options --machine and --verbose are incompatible", c.Name())
+	}
+	if parents && synonyms {
+		return errors.Errorf("%s: options --parents and --synonyms are incompatible", c.Name())
 	}
 
 	db, err := biodv.OpenTax(dbName, "")
@@ -136,6 +146,18 @@ func run(c *cmdapp.Command, args []string) error {
 			return errors.Errorf("%s: a taxon must be defined for a synonyms list", c.Name())
 		}
 		ls, err := biodv.TaxList(db.Synonyms(id))
+		if err != nil {
+			return errors.Wrap(err, c.Name())
+		}
+		printList(ls)
+		return nil
+	}
+
+	if parents {
+		if id == "" {
+			return errors.Errorf("%s: a taxon must be defined for a parent list", c.Name())
+		}
+		ls, err := biodv.TaxParents(db, id)
 		if err != nil {
 			return errors.Wrap(err, c.Name())
 		}

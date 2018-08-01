@@ -265,6 +265,29 @@ func TaxList(tsc *TaxScan) ([]Taxon, error) {
 	return ls, nil
 }
 
+// TaxParents returns a list with the parents
+// in a Taxonomy
+// for a given taxon ID
+// (included the given taxon)
+// sorted from the most inclusive
+// to the most exclusive taxon.
+func TaxParents(txm Taxonomy, id string) ([]Taxon, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, nil
+	}
+	tax, err := txm.TaxID(id)
+	if err != nil {
+		return nil, err
+	}
+	pls, err := TaxParents(txm, tax.Parent())
+	if err != nil {
+		return nil, err
+	}
+	pls = append(pls, tax)
+	return pls, nil
+}
+
 // Rank is a linnean rank.
 // Ranks are arranged in a way that
 // an inclusive rank in the taxonomy
