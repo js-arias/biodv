@@ -88,11 +88,21 @@ func run(c *cmdapp.Command, args []string) error {
 		for sc.Scan() {
 			if i == 1 {
 				fmt.Fprintf(os.Stderr, "ambiguous name:\n")
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\n", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
+				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
+				if tax.IsCorrect() {
+					fmt.Fprintf(os.Stderr, "correct name\n")
+				} else {
+					fmt.Fprintf(os.Stderr, "synonym\n")
+				}
 			}
 			tax = sc.Taxon()
 			if i > 0 {
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\n", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
+				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
+				if tax.IsCorrect() {
+					fmt.Fprintf(os.Stderr, "correct name\n")
+				} else {
+					fmt.Fprintf(os.Stderr, "synonym\n")
+				}
 			}
 			i++
 		}
