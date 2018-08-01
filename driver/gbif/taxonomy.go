@@ -137,7 +137,7 @@ func (db database) Children(id string) *biodv.TaxScan {
 	id = strings.TrimSpace(id)
 	if id == "" || id == "0" {
 		go db.rootTaxons(sc)
-		return nil
+		return sc
 	}
 	req := "species/" + id + "/children?"
 	param := url.Values{}

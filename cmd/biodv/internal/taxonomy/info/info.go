@@ -5,8 +5,8 @@
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
 // Package info implements the tax.info command,
-// i.e. display the information of a taxon.
-package list
+// i.e. prints taxon information.
+package info
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ var cmd = &cmdapp.Command{
 	UsageLine: "tax.info [--db <database>] [--id <value>] [<name>]",
 	Short:     "prints taxon information",
 	Long: `
-Command tx.info prints the information data available for a taxon name, in
+Command tax.info prints the information data available for a taxon name, in
 a given database.
 
 Either a taxon name, of a database id, should be used.
@@ -83,35 +83,26 @@ func run(c *cmdapp.Command, args []string) error {
 			return errors.Wrap(err, c.Name())
 		}
 	} else {
-		sc := db.Taxon(nm)
-		i := 0
-		for sc.Scan() {
-			if i == 1 {
-				fmt.Fprintf(os.Stderr, "ambiguous name:\n")
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
-				if tax.IsCorrect() {
-					fmt.Fprintf(os.Stderr, "correct name\n")
-				} else {
-					fmt.Fprintf(os.Stderr, "synonym\n")
-				}
-			}
-			tax = sc.Taxon()
-			if i > 0 {
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tax.ID(), tax.Name(), tax.Value(biodv.TaxAuthor))
-				if tax.IsCorrect() {
-					fmt.Fprintf(os.Stderr, "correct name\n")
-				} else {
-					fmt.Fprintf(os.Stderr, "synonym\n")
-				}
-			}
-			i++
-		}
-		if err := sc.Err(); err != nil {
+		ls, err := biodv.TaxList(db.Taxon(nm))
+		if err != nil {
 			return errors.Wrap(err, c.Name())
 		}
-		if tax == nil || i > 1 {
+		if len(ls) == 0 {
 			return nil
 		}
+		if len(ls) > 1 {
+			fmt.Fprintf(os.Stderr, "ambiguous name:\n")
+			for _, tx := range ls {
+				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
+				if tx.IsCorrect() {
+					fmt.Fprintf(os.Stderr, "correct name\n")
+				} else {
+					fmt.Fprintf(os.Stderr, "synonym\n")
+				}
+			}
+			return nil
+		}
+		tax = ls[0]
 	}
 	var p biodv.Taxon
 	if pID := tax.Parent(); pID != "" {
@@ -125,13 +116,12 @@ func run(c *cmdapp.Command, args []string) error {
 	fmt.Printf("\tRank: %s\n", tax.Rank())
 	if tax.IsCorrect() {
 		fmt.Printf("\tCorrect-Valid name\n")
-		sc := db.Synonyms(tax.ID())
-		for sc.Scan() {
-			syn := sc.Taxon()
-			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", syn.Name(), syn.Value(biodv.TaxAuthor), dbName, syn.ID())
-		}
-		if err := sc.Err(); err != nil {
+		ls, err := biodv.TaxList(db.Synonyms(tax.ID()))
+		if err != nil {
 			return errors.Wrap(err, c.Name())
+		}
+		for _, syn := range ls {
+			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", syn.Name(), syn.Value(biodv.TaxAuthor), dbName, syn.ID())
 		}
 	} else {
 		fmt.Printf("\tSynonym of %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
@@ -139,18 +129,15 @@ func run(c *cmdapp.Command, args []string) error {
 	if p != nil && tax.IsCorrect() {
 		fmt.Printf("\tParent: %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
 
-		sc := db.Children(tax.ID())
-		i := 0
-		for sc.Scan() {
-			if i == 0 {
-				fmt.Fprintf(os.Stderr, "\tContained taxa:\n")
-			}
-			child := sc.Taxon()
-			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", child.Name(), child.Value(biodv.TaxAuthor), dbName, child.ID())
-			i++
-		}
-		if err := sc.Err(); err != nil {
+		ls, err := biodv.TaxList(db.Children(tax.ID()))
+		if err != nil {
 			return errors.Wrap(err, c.Name())
+		}
+		if len(ls) > 0 {
+			fmt.Fprintf(os.Stderr, "\tContained taxa:\n")
+		}
+		for _, child := range ls {
+			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", child.Name(), child.Value(biodv.TaxAuthor), dbName, child.ID())
 		}
 	}
 	return nil

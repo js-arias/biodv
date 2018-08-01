@@ -251,6 +251,20 @@ func (tsc *TaxScan) Taxon() Taxon {
 	return tax
 }
 
+// TaxList creates a list of Taxon,
+// from a taxon scanner.
+func TaxList(tsc *TaxScan) ([]Taxon, error) {
+	var ls []Taxon
+	for tsc.Scan() {
+		tax := tsc.Taxon()
+		ls = append(ls, tax)
+	}
+	if err := tsc.Err(); err != nil {
+		return nil, err
+	}
+	return ls, nil
+}
+
 // Rank is a linnean rank.
 // Ranks are arranged in a way that
 // an inclusive rank in the taxonomy

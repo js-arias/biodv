@@ -8,4 +8,8 @@
 // to initialize tax.* [taxonomy] commands of biodv.
 package taxonomy
 
-import _ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/info"
+import (
+	// initialize sub-commands
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/info"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/list"
+)
