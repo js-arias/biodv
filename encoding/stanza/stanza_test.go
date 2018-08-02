@@ -7,6 +7,7 @@
 package stanza
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -73,6 +74,49 @@ func TestScan(t *testing.T) {
 			}
 		} else if len(rec) != 5 {
 			t.Errorf("fields %d, want 5", len(rec))
+		}
+		i++
+	}
+	if err := sc.Err(); err != nil {
+		t.Errorf("unexpected scanner error: %v", err)
+	}
+	if i != 4 {
+		t.Errorf("found %d records, want 4", i)
+	}
+}
+
+func TestWrite(t *testing.T) {
+	sc := NewScanner(strings.NewReader(blob))
+	country := make(map[string]map[string]string)
+	out := &bytes.Buffer{}
+	w := NewWriter(out)
+	w.SetFields([]string{"name", "common", "iso3166", "capital", "population", "anthem"})
+	for sc.Scan() {
+		rec := sc.Record()
+		err := w.Write(rec)
+		if err != nil {
+			t.Errorf("writing error: %v", err)
+		}
+		country[rec["common"]] = rec
+	}
+	if err := w.Flush(); err != nil {
+		t.Errorf("flushing error: %v", err)
+	}
+
+	sc = NewScanner(strings.NewReader(blob))
+
+	i := 0
+	for sc.Scan() {
+		rec := sc.Record()
+		p, ok := country[rec["common"]]
+		if !ok {
+			t.Errorf("country %q not found", rec["common"])
+			continue
+		}
+		for f, v := range rec {
+			if p[f] != v {
+				t.Errorf("country %q: get %q, want %q", p["common"], p[f], v)
+			}
 		}
 		i++
 	}
