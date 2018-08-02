@@ -198,7 +198,7 @@ func (tsc *TaxScan) Close() {
 	tsc.closed = true
 }
 
-// Err returns the errors,
+// Err returns the error,
 // if any,
 // that was encountered during iteration.
 func (tsc *TaxScan) Err() error {
