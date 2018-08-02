@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 )
@@ -286,6 +288,17 @@ func TaxParents(txm Taxonomy, id string) ([]Taxon, error) {
 	}
 	pls = append(pls, tax)
 	return pls, nil
+}
+
+// TaxCanon returns a taxon name into its canonical form.
+func TaxCanon(name string) string {
+	name = strings.Join(strings.Fields(name), " ")
+	if name == "" {
+		return ""
+	}
+	name = strings.ToLower(name)
+	r, n := utf8.DecodeRuneInString(name)
+	return string(unicode.ToTitle(r)) + name[n:]
 }
 
 // Rank is a linnean rank.

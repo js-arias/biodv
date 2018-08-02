@@ -120,3 +120,25 @@ func TestTaxScan(t *testing.T) {
 		t.Errorf("scanned taxons %d, want %d", c, 2)
 	}
 }
+
+func TestBiodvTaxCanon(t *testing.T) {
+	testData := []struct {
+		text string
+		name string
+	}{
+		{"Hominidae", "Hominidae"},
+		{"Pongo   ", "Pongo"},
+		{"PAN", "Pan"},
+		{"Pan troglodytes", "Pan troglodytes"},
+		{"pan paniscus", "Pan paniscus"},
+		{"   Homo", "Homo"},
+		{"Homo sapiens", "Homo sapiens"},
+		{"  Pithecanthropus   ", "Pithecanthropus"},
+	}
+
+	for _, d := range testData {
+		if cn := TaxCanon(d.text); cn != d.name {
+			t.Fatalf("Canon name %q, want %q", cn, d.name)
+		}
+	}
+}
