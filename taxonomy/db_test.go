@@ -28,7 +28,7 @@ var testData = []struct {
 	{"Pithecanthropus", "Homo", false, biodv.Genus},
 }
 
-var _ biodv.Taxon = &Taxon{} // Test Taxon interface
+var _ biodv.Taxonomy = Open() // Test Taxonomy interface
 
 func TestAdd(t *testing.T) {
 	db := Open()
@@ -74,5 +74,41 @@ func TestAdd(t *testing.T) {
 	}
 	if _, err := db.Add("Rhedosaurus", "", biodv.Genus, false); err == nil {
 		t.Errorf("adding a synonym without a parent, expecting error")
+	}
+
+	ls, err := biodv.TaxList(db.Children(""))
+	if err != nil {
+		t.Errorf("when looking for root-childrens: %v", err)
+	}
+	if len(ls) != 1 {
+		t.Errorf("number of root-children %d, want %d", len(ls), 1)
+	}
+
+	ls, err = biodv.TaxList(db.Children("Hominidae"))
+	if err != nil {
+		t.Errorf("when looking for \"Hominidae\" childrens: %v", err)
+	}
+	if len(ls) != 3 {
+		t.Errorf("number of \"Hominidae\" children %d, want %d", len(ls), 3)
+	}
+
+	ls, err = biodv.TaxList(db.Taxon("Pan paniscus"))
+	if err != nil {
+		t.Errorf("when looking for \"Pan paniscus\": %v", err)
+	}
+	if len(ls) != 1 {
+		t.Errorf("number of taxons with name \"Pan paniscus\" %d, want %d", len(ls), 1)
+	}
+	tax := ls[0]
+	if !tax.IsCorrect() || tax.Parent() != "Pan" {
+		t.Errorf("taxon %q with wrong data: %v parent %s", tax.Name(), tax.IsCorrect(), tax.Parent())
+	}
+
+	tax, err = db.TaxID("Pithecanthropus")
+	if err != nil {
+		t.Errorf("when looking for \"Pithecanthropus\": %v", err)
+	}
+	if tax.IsCorrect() || tax.Parent() != "Homo" {
+		t.Errorf("taxon %q with wrong data: %v parent %s", tax.Name(), tax.IsCorrect(), tax.Parent())
 	}
 }

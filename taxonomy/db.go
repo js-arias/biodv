@@ -17,15 +17,91 @@ import (
 
 // DB is a taxonomy database,
 // for reading and writing data.
+// DB implements the biodv.Taxonomy interface.
 type DB struct {
-	ids map[string]*Taxon
+	ids  map[string]*Taxon
+	root []*Taxon
+}
+
+func (db *DB) Taxon(name string) *biodv.TaxScan {
+	sc := biodv.NewTaxScan(1)
+	name = biodv.TaxCanon(name)
+	if name == "" {
+		sc.Add(nil, errors.Errorf("taxonomy: db: taxon: empty taxon name"))
+		return sc
+	}
+	if tax, ok := db.ids[name]; ok {
+		sc.Add(tax, nil)
+	}
+	sc.Add(nil, nil)
+	return sc
+}
+
+func (db *DB) TaxID(id string) (biodv.Taxon, error) {
+	id = biodv.TaxCanon(id)
+	if id == "" {
+		return nil, errors.Errorf("taxonomy: db: taxon: empty taxon ID")
+	}
+	if tax, ok := db.ids[id]; ok {
+		return tax, nil
+	}
+	return nil, nil
+}
+
+func (db *DB) Children(id string) *biodv.TaxScan {
+	sc := biodv.NewTaxScan(20)
+	id = biodv.TaxCanon(id)
+	var ls []*Taxon
+	if id == "" {
+		ls = db.root
+	} else {
+		tax, ok := db.ids[id]
+		if !ok {
+			sc.Add(nil, nil)
+			return sc
+		}
+		ls = tax.children
+	}
+	go func() {
+		for _, c := range ls {
+			if c.IsCorrect() {
+				sc.Add(c, nil)
+			}
+		}
+		sc.Add(nil, nil)
+	}()
+	return sc
+}
+
+func (db *DB) Synonyms(id string) *biodv.TaxScan {
+	sc := biodv.NewTaxScan(20)
+	id = biodv.TaxCanon(id)
+	if id == "" {
+		sc.Add(nil, errors.Errorf("taxonomy: db: taxon: invalid ID for a synonym"))
+		return sc
+	}
+	tax, ok := db.ids[id]
+	if !ok {
+		sc.Add(nil, nil)
+		return sc
+	}
+	go func() {
+		for _, sn := range tax.children {
+			if !sn.IsCorrect() {
+				sc.Add(sn, nil)
+			}
+		}
+		sc.Add(nil, nil)
+	}()
+	return sc
 }
 
 // Taxon is a taxon stored in a DB.
 // Taxon implements the biodv.Taxon interface.
 type Taxon struct {
-	data   map[string]string
-	parent *Taxon
+	data     map[string]string
+	parent   *Taxon
+	children []*Taxon
 }
 
 func (tax *Taxon) Name() string {
@@ -117,6 +193,11 @@ func (db *DB) Add(name, parent string, rank biodv.Rank, correct bool) (*Taxon, e
 		tax.data["correct"] = "false"
 	}
 	tax.parent = p
+	if p == nil {
+		db.root = append(db.root, tax)
+	} else {
+		p.children = append(p.children, tax)
+	}
 	db.ids[name] = tax
 	return tax, nil
 }
