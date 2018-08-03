@@ -198,6 +198,16 @@ func (tax *Taxon) isConsistentDown(correct bool, rank biodv.Rank) bool {
 	return true
 }
 
+func init() {
+	biodv.RegisterTax("biodv", open)
+}
+
+// open opens a DB
+// as a biodv.Taxonomy.
+func open(path string) (biodv.Taxonomy, error) {
+	return Open(path)
+}
+
 // Open opens a DB
 // on a given path.
 func Open(path string) (*DB, error) {

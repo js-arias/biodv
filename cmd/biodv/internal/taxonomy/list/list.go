@@ -44,7 +44,8 @@ Options are:
       If set, the indicated database will be used to produce the taxon
       list.
       Available databases are:
-        gbif
+        biodv	default database (on current directory)
+        gbif	GBIF webservice (requires internet connection)
 
     -id <value>
     --id <value>
@@ -102,7 +103,7 @@ func register(c *cmdapp.Command) {
 
 func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
-		return errors.Errorf("%s: a database must be defined", c.Name())
+		dbName = "biodv"
 	}
 
 	if machine && verbose {

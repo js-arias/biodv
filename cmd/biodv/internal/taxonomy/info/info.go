@@ -35,7 +35,8 @@ Options are:
       If set, the indicated database will be used to extract the taxon
       information.
       Available databases are:
-        gbif
+        biodv	default database (on current directory)
+        gbif	GBIF webservice (requires internet connection)
 
     -id <value>
     --id <value>
@@ -58,13 +59,13 @@ var dbName string
 var id string
 
 func register(c *cmdapp.Command) {
-	c.Flag.StringVar(&dbName, "db", "", "")
+	c.Flag.StringVar(&dbName, "db", "biodv", "")
 	c.Flag.StringVar(&id, "id", "", "")
 }
 
 func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
-		return errors.Errorf("%s: a database must be defined", c.Name())
+		dbName = "biodv"
 	}
 	nm := strings.Join(args, " ")
 	if id == "" && nm == "" {
@@ -143,7 +144,8 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 	if p != nil && tax.IsCorrect() {
 		fmt.Printf("\tParent: %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
-
+	}
+	if tax.IsCorrect() {
 		ls, err := biodv.TaxList(db.Children(tax.ID()))
 		if err != nil {
 			return errors.Wrap(err, c.Name())
