@@ -10,6 +10,7 @@ package taxonomy
 
 import (
 	// initialize sub-commands
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/add"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/info"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/list"
 )

@@ -8,6 +8,8 @@ package taxonomy
 
 import (
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -21,6 +23,7 @@ import (
 // from a taxonomy file,
 // in stanza format.
 type Scanner struct {
+	f   *os.File
 	sc  *stanza.Scanner
 	rec map[string]string
 	err error
@@ -31,23 +34,23 @@ type Scanner struct {
 type record map[string]string
 
 func (r record) Name() string {
-	return r["name"]
+	return r[nameKey]
 }
 
 func (r record) ID() string {
-	return r["name"]
+	return r[nameKey]
 }
 
 func (r record) Parent() string {
-	return r["parent"]
+	return r[parentKey]
 }
 
 func (r record) Rank() biodv.Rank {
-	return biodv.GetRank(r["rank"])
+	return biodv.GetRank(r[rankKey])
 }
 
 func (r record) IsCorrect() bool {
-	if r["correct"] == "false" {
+	if r[correctKey] == "false" {
 		return false
 	}
 	return true
@@ -56,15 +59,16 @@ func (r record) IsCorrect() bool {
 func (r record) Keys() []string {
 	var ls []string
 	mp := make(map[string]bool)
-	mp["name"] = true
-	mp["parent"] = true
-	mp["rank"] = true
-	mp["correct"] = true
+	mp[nameKey] = true
+	mp[parentKey] = true
+	mp[rankKey] = true
+	mp[correctKey] = true
 	for k := range r {
 		if mp[k] {
 			continue
 		}
 		ls = append(ls, k)
+		mp[k] = true
 	}
 	sort.Strings(ls)
 	return ls
@@ -82,6 +86,37 @@ func (r record) Value(key string) string {
 // that read taxons from r.
 func NewScanner(r io.Reader) *Scanner {
 	return &Scanner{sc: stanza.NewScanner(r)}
+}
+
+// OpenScanner returns a scanner
+// that reads from a taxonomy file
+// on a given path.
+func OpenScanner(path string) *Scanner {
+	file := filepath.Join(path, taxDir, taxFile)
+	f, err := os.Open(file)
+	if err != nil {
+		return &Scanner{err: io.EOF}
+	}
+	return &Scanner{
+		sc: stanza.NewScanner(f),
+		f:  f,
+	}
+}
+
+// Close closes the scanner,
+// preventing furher enumeration.
+//
+// If Scan returns false,
+// the scanner is closed automatically
+// and it will suffice to check the result of Err.
+func (sc *Scanner) Close() {
+	if sc.err == io.EOF {
+		return
+	}
+	if sc.f != nil {
+		sc.f.Close()
+	}
+	sc.err = io.EOF
 }
 
 // Err returns the error,
@@ -127,28 +162,31 @@ func (sc *Scanner) Scan() bool {
 			break
 		}
 		rec := sc.sc.Record()
-		rec["name"] = biodv.TaxCanon(rec["name"])
-		if rec["name"] == "" {
+		rec[nameKey] = biodv.TaxCanon(rec[nameKey])
+		if rec[nameKey] == "" {
+			sc.Close()
 			sc.err = errors.Errorf("taxonomy: scanner: empty taxon name")
 			return false
 		}
-		rec["parent"] = biodv.TaxCanon(rec["parent"])
-		rec["rank"] = biodv.GetRank(rec["rank"]).String()
-		rec["correct"] = strings.ToLower(strings.TrimSpace(rec["correct"]))
-		if rec["correct"] != "false" {
-			rec["correct"] = "true"
+		rec[parentKey] = biodv.TaxCanon(rec[parentKey])
+		rec[rankKey] = biodv.GetRank(rec[rankKey]).String()
+		rec[correctKey] = strings.ToLower(strings.TrimSpace(rec[correctKey]))
+		if rec[correctKey] != "false" {
+			rec[correctKey] = "true"
 		}
-		if rec["parent"] == "" && rec["correct"] == "false" {
-			sc.err = errors.Errorf("taxonomy: scanner: while parsing %q: synonym without a parent", rec["name"])
+		if rec[parentKey] == "" && rec[correctKey] == "false" {
+			sc.Close()
+			sc.err = errors.Errorf("taxonomy: scanner: while parsing %q: synonym without a parent", rec[nameKey])
 			return false
 		}
 		sc.rec = rec
 		return true
 	}
 	if err := sc.sc.Err(); err != nil {
+		sc.Close()
 		sc.err = errors.Wrap(err, "taxonomy: scanner")
 		return false
 	}
-	sc.err = io.EOF
+	sc.Close()
 	return false
 }

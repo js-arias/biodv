@@ -28,10 +28,8 @@ var testData = []struct {
 	{"Pithecanthropus", "Homo", false, biodv.Genus},
 }
 
-var _ biodv.Taxonomy = Open() // Test Taxonomy interface
-
 func TestAdd(t *testing.T) {
-	db := Open()
+	db := &DB{ids: make(map[string]*Taxon)}
 
 	if _, err := db.Add(" ", "Primates", biodv.Class, true); err == nil {
 		t.Errorf("adding an empty taxon, expecting error")
@@ -110,5 +108,9 @@ func TestAdd(t *testing.T) {
 	}
 	if tax.IsCorrect() || tax.Parent() != "Homo" {
 		t.Errorf("taxon %q with wrong data: %v parent %s", tax.Name(), tax.IsCorrect(), tax.Parent())
+	}
+
+	if !db.changed {
+		t.Errorf("database has changed, but no change recorded")
 	}
 }
