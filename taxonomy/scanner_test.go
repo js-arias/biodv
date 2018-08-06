@@ -9,6 +9,8 @@ package taxonomy
 import (
 	"strings"
 	"testing"
+
+	"github.com/js-arias/biodv"
 )
 
 var scannerBlob = `
@@ -79,7 +81,7 @@ func TestScan(t *testing.T) {
 		if tax.IsCorrect() != testData[i].correct {
 			t.Errorf("taxon %s is correct == %v", tax.Name(), tax.IsCorrect())
 		}
-		if tax.Value("extern") == "" {
+		if tax.Value(biodv.TaxExtern) == "" {
 			t.Errorf("taxon %s does not have \"extern\" key", tax.Name())
 		}
 		i++
@@ -89,5 +91,25 @@ func TestScan(t *testing.T) {
 	}
 	if i != len(testData) {
 		t.Errorf("found %d records, want %d", i, len(testData))
+	}
+}
+
+func TestDBScan(t *testing.T) {
+	db := &DB{ids: make(map[string]*Taxon)}
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	tax, _ := db.TaxID("gbif:2436436")
+	if tax == nil {
+		t.Error("no taxon associated with key: \"gbif:2436436\"")
+	}
+	tax, _ = db.TaxID("Pan troglodytes")
+	if tax == nil {
+		t.Error("no taxon associated with key: \"Pan troglodytes\"")
+	}
+	if v := tax.Value(biodv.TaxExtern); v != "gbif:5219534" {
+		t.Errorf("taxon %s extern %q, want %q", tax.Name(), v, "gbif:5219534")
 	}
 }

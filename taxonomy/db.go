@@ -12,6 +12,7 @@ package taxonomy
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/js-arias/biodv"
@@ -54,7 +55,11 @@ func (db *DB) Taxon(name string) *biodv.TaxScan {
 
 // TaxID returns the taxon with a given ID.
 func (db *DB) TaxID(id string) (biodv.Taxon, error) {
-	id = biodv.TaxCanon(id)
+	if getService(id) != "" {
+		id = strings.ToLower(id)
+	} else {
+		id = biodv.TaxCanon(id)
+	}
 	if id == "" {
 		return nil, errors.Errorf("taxonomy: db: taxon: empty taxon ID")
 	}
@@ -120,6 +125,7 @@ func (db *DB) Synonyms(id string) *biodv.TaxScan {
 // Taxon is a taxon stored in a DB.
 // Taxon implements the biodv.Taxon interface.
 type Taxon struct {
+	db       *DB
 	data     map[string]string
 	parent   *Taxon
 	children []*Taxon
@@ -179,6 +185,96 @@ func (tax *Taxon) Value(key string) string {
 	return tax.data[key]
 }
 
+// Set sets a value from a given key.
+// The value should be transformed into
+// a string.
+// When an empty string is used as value,
+// the stored value will be deleted.
+func (tax *Taxon) Set(key, value string) error {
+	key = strings.ToLower(strings.Join(strings.Fields(key), "-"))
+	if key == "" {
+		return nil
+	}
+	value = strings.TrimSpace(value)
+
+	switch key {
+	case nameKey:
+		fallthrough
+	case parentKey:
+		fallthrough
+	case rankKey:
+		fallthrough
+	case correctKey:
+		return errors.Errorf("taxonomy: taxon: invalid key value: %s", key)
+	case biodv.TaxExtern:
+		srv := getService(value)
+		if srv == "" {
+			return errors.Errorf("taxonomy: taxon: invalid extern ID value: %s", value)
+		}
+		ext := strings.Fields(tax.data[key])
+		if srv+":" == value {
+			// empty extern ID,
+			// deletes the extern ID from database
+			for i, e := range ext {
+				if srv != getService(e) {
+					continue
+				}
+				delete(tax.db.ids, e)
+				n := append(ext[:i], ext[i+1:]...)
+				tax.data[key] = strings.Join(n, " ")
+				tax.db.changed = true
+				return nil
+			}
+			return nil
+		}
+
+		// check if the given ID is already in use
+		if _, dup := tax.db.ids[value]; dup {
+			return errors.Errorf("taxonomy: taxon: extern ID %s already in use", value)
+		}
+
+		// if the service is already set
+		for i, e := range ext {
+			if srv != getService(e) {
+				continue
+			}
+			delete(tax.db.ids, e)
+			tax.db.ids[value] = tax
+			ext[i] = value
+			tax.data[key] = strings.Join(ext, " ")
+			tax.db.changed = true
+			return nil
+		}
+
+		// the service is new
+		ext = append(ext, value)
+		sort.Strings(ext)
+		tax.db.ids[value] = tax
+		tax.data[key] = strings.Join(ext, " ")
+		tax.db.changed = true
+		return nil
+	default:
+		v := tax.data[key]
+		if v == value {
+			return nil
+		}
+		tax.data[key] = value
+		tax.db.changed = true
+	}
+	return nil
+}
+
+// GetService returns the service
+// (extern Taxonomy identifier)
+// that provides an external ID.
+func getService(id string) string {
+	i := strings.Index(id, ":")
+	if i <= 0 {
+		return ""
+	}
+	return id[:i]
+}
+
 // Encode writes a taxon
 // into a stanza writer.
 func (tax *Taxon) encode(w *stanza.Writer) error {
@@ -236,20 +332,34 @@ func Open(path string) (*DB, error) {
 		path: path,
 		ids:  make(map[string]*Taxon),
 	}
-	sc := OpenScanner(path)
-	for sc.Scan() {
-		r := sc.Taxon()
-		_, err := db.Add(r.Name(), r.Parent(), r.Rank(), r.IsCorrect())
-		if err != nil {
-			sc.Close()
-			return nil, err
-		}
-		if err := sc.Err(); err != nil {
-			return nil, err
-		}
+	if err := db.scan(OpenScanner(path)); err != nil {
+		return nil, err
 	}
 	db.changed = false
 	return db, nil
+}
+
+// Scan uses a scanner
+// to load a database.
+func (db *DB) scan(sc *Scanner) error {
+	for sc.Scan() {
+		r := sc.Taxon()
+		tax, err := db.Add(r.Name(), r.Parent(), r.Rank(), r.IsCorrect())
+		if err != nil {
+			sc.Close()
+			return err
+		}
+		keys := r.Keys()
+		for _, k := range keys {
+			if err := tax.Set(k, r.Value(k)); err != nil {
+				return err
+			}
+		}
+		if err := sc.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Add adds a new taxon name to a DB.
@@ -279,7 +389,10 @@ func (db *DB) Add(name, parent string, rank biodv.Rank, correct bool) (*Taxon, e
 	if p == nil && !correct {
 		return nil, errors.Errorf("taxonomy: db: add %q: synonym without a parent")
 	}
-	tax := &Taxon{data: make(map[string]string)}
+	tax := &Taxon{
+		db:   db,
+		data: make(map[string]string),
+	}
 	tax.data[nameKey] = name
 	tax.data[parentKey] = parent
 	tax.data[rankKey] = rank.String()

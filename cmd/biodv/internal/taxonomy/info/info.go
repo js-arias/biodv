@@ -122,21 +122,9 @@ func print(db biodv.Taxonomy, tax biodv.Taxon) error {
 		}
 	}
 	fmt.Printf("%s %s\n", tax.Name(), tax.Value(biodv.TaxAuthor))
-	fmt.Printf("%s-ID: %s\n", dbName, tax.ID())
-	pLs, err := biodv.TaxParents(db, tax.Parent())
-	if err != nil {
+	ids(tax)
+	if err := parents(db, tax); err != nil {
 		return err
-	}
-	for i, pt := range pLs {
-		if i > 0 {
-			fmt.Printf(" > ")
-		}
-		if pt.Rank() != biodv.Unranked {
-			fmt.Printf("%s: %s", pt.Rank(), pt.Name())
-		}
-	}
-	if len(pLs) > 0 {
-		fmt.Printf("\n")
 	}
 	fmt.Printf("\tRank: %s\n", tax.Rank())
 	if tax.IsCorrect() {
@@ -154,6 +142,42 @@ func print(db biodv.Taxonomy, tax biodv.Taxon) error {
 	if p != nil && tax.IsCorrect() {
 		fmt.Printf("\tParent: %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
 	}
+	if err := contained(db, tax); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ids(tax biodv.Taxon) {
+	fmt.Printf("\t%s-ID: %s\n", dbName, tax.ID())
+	v := tax.Value(biodv.TaxExtern)
+	for _, e := range strings.Fields(v) {
+		fmt.Printf("\t%s\n", e)
+	}
+}
+
+func parents(db biodv.Taxonomy, tax biodv.Taxon) error {
+	pLs, err := biodv.TaxParents(db, tax.Parent())
+	if err != nil {
+		return err
+	}
+	for i, pt := range pLs {
+		if i > 0 {
+			fmt.Printf(" > ")
+		}
+		if pt.Rank() != biodv.Unranked {
+			fmt.Printf("%s: %s", pt.Rank(), pt.Name())
+		} else {
+			fmt.Printf("%s", pt.Name())
+		}
+	}
+	if len(pLs) > 0 {
+		fmt.Printf("\n")
+	}
+	return nil
+}
+
+func contained(db biodv.Taxonomy, tax biodv.Taxon) error {
 	if tax.IsCorrect() {
 		ls, err := biodv.TaxList(db.Children(tax.ID()))
 		if err != nil {

@@ -121,6 +121,7 @@ type Taxon interface {
 // Common keys used for a Taxon.
 const (
 	TaxAuthor = "author"
+	TaxExtern = "extern"
 	TaxRef    = "reference"
 	TaxSource = "source"
 )
