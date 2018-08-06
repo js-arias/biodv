@@ -48,7 +48,7 @@ type species struct {
 	Authorship               string // author
 	RankStr                  string `json:"rank"`
 	Synonym                  bool   // correct
-	DatasetKey               string // source
+	ConstituentKey           string // source
 	ParentKey                int64  // parent
 	PublishedIn              string // reference
 
@@ -112,7 +112,7 @@ func (sp *species) Value(key string) string {
 	case biodv.TaxRef:
 		return sp.PublishedIn
 	case biodv.TaxSource:
-		return sp.DatasetKey
+		return sp.ConstituentKey
 	}
 	return ""
 }

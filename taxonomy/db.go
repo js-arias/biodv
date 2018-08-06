@@ -36,9 +36,9 @@ type DB struct {
 }
 
 // Taxon returns a list of taxons with a given name.
-// This function is for compatibility with biodv.Taxonomy interface,
-// use TaxID to get a taxon by its name,
-// if you are using DB type.
+// This function is for compatibility with biodv.Taxonomy interface.
+//
+// When using an editable DB prefer TaxEd.
 func (db *DB) Taxon(name string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(1)
 	name = biodv.TaxCanon(name)
@@ -54,12 +54,10 @@ func (db *DB) Taxon(name string) *biodv.TaxScan {
 }
 
 // TaxID returns the taxon with a given ID.
+//
+// When using an editable DB prefer TaxEd.
 func (db *DB) TaxID(id string) (biodv.Taxon, error) {
-	if getService(id) != "" {
-		id = strings.ToLower(id)
-	} else {
-		id = biodv.TaxCanon(id)
-	}
+	id = getTaxonID(id)
 	if id == "" {
 		return nil, errors.Errorf("taxonomy: db: taxon: empty taxon ID")
 	}
@@ -69,13 +67,59 @@ func (db *DB) TaxID(id string) (biodv.Taxon, error) {
 	return nil, nil
 }
 
+// TaxEd returns an editable Taxon
+func (db *DB) TaxEd(id string) *Taxon {
+	id = getTaxonID(id)
+	if id == "" {
+		return nil
+	}
+	if tax, ok := db.ids[id]; ok {
+		return tax
+	}
+	return nil
+}
+
+// GetTaxonID gets a valid ID
+// either from a taxon name,
+// or an external service.
+func getTaxonID(id string) string {
+	if getService(id) != "" {
+		return strings.ToLower(id)
+	}
+	return biodv.TaxCanon(id)
+}
+
+// TaxList returns a list of taxons.
+// It will return all the descendants
+// (correct children and synonyms)
+// attached to the taxon.
+// If the taxon ID is empty,
+// it will list the root of the taxonomy.
+func (db *DB) TaxList(id string) []*Taxon {
+	id = getTaxonID(id)
+	if id == "" {
+		ls := make([]*Taxon, len(db.root))
+		copy(ls, db.root)
+		return ls
+	}
+	tax, ok := db.ids[id]
+	if !ok {
+		return nil
+	}
+	ls := make([]*Taxon, len(tax.children))
+	copy(ls, tax.children)
+	return ls
+}
+
 // Children returns a list of taxon children of a given ID,
 // if the ID is empty,
 // it will return the taxons attached to the root
 // of the taxonomy.
+//
+// When using an editable DB prefer TaxList.
 func (db *DB) Children(id string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(20)
-	id = biodv.TaxCanon(id)
+	id = getTaxonID(id)
 	var ls []*Taxon
 	if id == "" {
 		ls = db.root
@@ -99,9 +143,11 @@ func (db *DB) Children(id string) *biodv.TaxScan {
 }
 
 // Synonyms returns a list taxons synonyms of a given ID.
+//
+// When using an editable DB prefer TaxList.
 func (db *DB) Synonyms(id string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(20)
-	id = biodv.TaxCanon(id)
+	id = getTaxonID(id)
 	if id == "" {
 		sc.Add(nil, errors.Errorf("taxonomy: db: taxon: invalid ID for a synonym"))
 		return sc
