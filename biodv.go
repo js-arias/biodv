@@ -81,6 +81,9 @@ func TaxDrivers() []string {
 // by its driver,
 // and a driver specific parameter string.
 func OpenTax(driver, param string) (Taxonomy, error) {
+	if driver == "" {
+		return nil, errors.New("biodv: empty taxonomy driver")
+	}
 	taxDriversMu.RLock()
 	fn, ok := taxDrivers[driver]
 	taxDriversMu.RUnlock()
@@ -88,6 +91,17 @@ func OpenTax(driver, param string) (Taxonomy, error) {
 		return nil, errors.Errorf("biodv: unknown taxonomy driver %q", driver)
 	}
 	return fn(param)
+}
+
+// ParseDriverString separates a driver
+// and its parameter if it is set
+// in the form <driver>:<param>.
+func ParseDriverString(str string) (driver, param string) {
+	i := strings.Index(str, ":")
+	if i < 0 {
+		return str, ""
+	}
+	return str[:i], str[i+1:]
 }
 
 // A Taxon is a taoxn name in a taxonomy.

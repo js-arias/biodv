@@ -22,15 +22,29 @@ func init() {
 	biodv.RegisterTax("gbif", OpenTax)
 }
 
+// NubO is a parameter used to open a taxonomy
+// that accepts taxons with nubKey = 0,
+// in such cases it will use the key field
+// instead of the nubKey.
+const Nub0 = "nub-0"
+
 // OpenTax returns the GBIF
 // taxonomy handler,
 // that implements the biodv.Taxonomy interface.
-func OpenTax(string) (biodv.Taxonomy, error) {
+//
+// If the param is equal to Nub0
+// it will accept taxons with a nubKey = 0.
+func OpenTax(param string) (biodv.Taxonomy, error) {
 	if reqChan == nil {
 		initReqs()
 	}
+	if param == Nub0 {
+		useNub0 = true
+	}
 	return database{}, nil
 }
+
+var useNub0 = false
 
 // SpAnswer is the answer for the species request.
 type spAnswer struct {
@@ -76,6 +90,9 @@ func (sp *species) Name() string {
 }
 
 func (sp *species) ID() string {
+	if sp.NubKey == 0 {
+		return strconv.FormatInt(sp.Key, 10)
+	}
 	return strconv.FormatInt(sp.NubKey, 10)
 }
 
@@ -183,14 +200,11 @@ func taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 				}
 
 				for _, sp := range resp.Results {
-					// Some taxons,
-					// usually invalid,
-					// does not have
-					// an explicit nubKey.
-					if sp.NubKey == 0 {
-						sp.NubKey = sp.Key
+					nub := sp.NubKey
+					if nub == 0 && useNub0 {
+						nub = sp.Key
 					}
-					if sp.Key != sp.NubKey {
+					if sp.Key != nub {
 						continue
 					}
 					if !sc.Add(sp, nil) {
@@ -265,13 +279,6 @@ func (db database) TaxID(id string) (biodv.Taxon, error) {
 			err = d.Decode(sp)
 			if err != nil {
 				continue
-			}
-			// Some taxons,
-			// usually invalid,
-			// does not have
-			// an explicit nubKey.
-			if sp.NubKey == 0 {
-				sp.NubKey = sp.Key
 			}
 			return sp, nil
 		}

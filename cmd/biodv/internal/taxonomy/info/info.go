@@ -67,12 +67,15 @@ func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
 		dbName = "biodv"
 	}
+	var param string
+	dbName, param = biodv.ParseDriverString(dbName)
+
 	nm := strings.Join(args, " ")
 	if id == "" && nm == "" {
 		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
 	}
 
-	db, err := biodv.OpenTax(dbName, "")
+	db, err := biodv.OpenTax(dbName, param)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}

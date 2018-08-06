@@ -72,7 +72,9 @@ func run(c *cmdapp.Command, args []string) error {
 	if extName == "" {
 		return errors.Errorf("%s: an external database should be defined", c.Name())
 	}
-	ext, err := biodv.OpenTax(extName, "")
+	var param string
+	extName, param = biodv.ParseDriverString(extName)
+	ext, err := biodv.OpenTax(extName, param)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}

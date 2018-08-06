@@ -105,6 +105,8 @@ func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
 		dbName = "biodv"
 	}
+	var param string
+	dbName, param = biodv.ParseDriverString(dbName)
 
 	if machine && verbose {
 		return errors.Errorf("%s: options --machine and --verbose are incompatible", c.Name())
@@ -113,7 +115,7 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Errorf("%s: options --parents and --synonyms are incompatible", c.Name())
 	}
 
-	db, err := biodv.OpenTax(dbName, "")
+	db, err := biodv.OpenTax(dbName, param)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
