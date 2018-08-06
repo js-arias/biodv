@@ -142,36 +142,39 @@ func run(c *cmdapp.Command, args []string) error {
 		id = ls[0].ID()
 	}
 
-	if synonyms {
-		if id == "" {
-			return errors.Errorf("%s: a taxon must be defined for a synonyms list", c.Name())
-		}
-		ls, err := biodv.TaxList(db.Synonyms(id))
-		if err != nil {
-			return errors.Wrap(err, c.Name())
-		}
-		printList(ls)
-		return nil
-	}
-
-	if parents {
-		if id == "" {
-			return errors.Errorf("%s: a taxon must be defined for a parent list", c.Name())
-		}
-		ls, err := biodv.TaxParents(db, id)
-		if err != nil {
-			return errors.Wrap(err, c.Name())
-		}
-		printList(ls)
-		return nil
-	}
-
-	ls, err := biodv.TaxList(db.Children(id))
+	ls, err := getList(db)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
 	printList(ls)
+
 	return nil
+}
+
+func getList(db biodv.Taxonomy) ([]biodv.Taxon, error) {
+	if synonyms {
+		if id == "" {
+			return nil, errors.New("a taxon must be defined for a synonyms list")
+		}
+		ls, err := biodv.TaxList(db.Synonyms(id))
+		if err != nil {
+			return nil, err
+		}
+		return ls, nil
+	}
+
+	if parents {
+		if id == "" {
+			return nil, errors.New("a taxon must be defined for a parent list")
+		}
+		ls, err := biodv.TaxParents(db, id)
+		if err != nil {
+			return nil, err
+		}
+		return ls, nil
+	}
+
+	return biodv.TaxList(db.Children(id))
 }
 
 func printList(ls []biodv.Taxon) {

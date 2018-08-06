@@ -34,6 +34,10 @@ type DB struct {
 	root    []*Taxon
 }
 
+// Taxon returns a list of taxons with a given name.
+// This function is for compatibility with biodv.Taxonomy interface,
+// use TaxID to get a taxon by its name,
+// if you are using DB type.
 func (db *DB) Taxon(name string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(1)
 	name = biodv.TaxCanon(name)
@@ -48,6 +52,7 @@ func (db *DB) Taxon(name string) *biodv.TaxScan {
 	return sc
 }
 
+// TaxID returns the taxon with a given ID.
 func (db *DB) TaxID(id string) (biodv.Taxon, error) {
 	id = biodv.TaxCanon(id)
 	if id == "" {
@@ -59,6 +64,10 @@ func (db *DB) TaxID(id string) (biodv.Taxon, error) {
 	return nil, nil
 }
 
+// Children returns a list of taxon children of a given ID,
+// if the ID is empty,
+// it will return the taxons attached to the root
+// of the taxonomy.
 func (db *DB) Children(id string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(20)
 	id = biodv.TaxCanon(id)
@@ -84,6 +93,7 @@ func (db *DB) Children(id string) *biodv.TaxScan {
 	return sc
 }
 
+// Synonyms returns a list taxons synonyms of a given ID.
 func (db *DB) Synonyms(id string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(20)
 	id = biodv.TaxCanon(id)
@@ -115,22 +125,29 @@ type Taxon struct {
 	children []*Taxon
 }
 
+// Name returns the canonical name of the current taxon.
 func (tax *Taxon) Name() string {
 	return tax.data[nameKey]
 }
 
+// ID returns the ID of the current taxon.
 func (tax *Taxon) ID() string {
 	return tax.data[nameKey]
 }
 
+// Parent returns the ID of the taxon's parent.
 func (tax *Taxon) Parent() string {
 	return tax.data[parentKey]
 }
 
+// Rank returns the linnean rank of the current taxon.
 func (tax *Taxon) Rank() biodv.Rank {
 	return biodv.GetRank(tax.data[rankKey])
 }
 
+// IsCorrect returns true if the taxon
+// is a correct name
+// (i.e. not a synonym).
 func (tax *Taxon) IsCorrect() bool {
 	if tax.data[correctKey] == "false" {
 		return false
@@ -146,10 +163,14 @@ const (
 	correctKey = "correct"
 )
 
+// Keys returns a list of additional fields
+// stored in the taxon.
 func (tax *Taxon) Keys() []string {
 	return record(tax.data).Keys()
 }
 
+// Value returns the value
+// of an additional field stored in the taxon.
 func (tax *Taxon) Value(key string) string {
 	key = strings.ToLower(strings.TrimSpace(key))
 	if key == "" {
@@ -202,7 +223,7 @@ func init() {
 	biodv.RegisterTax("biodv", open)
 }
 
-// open opens a DB
+// Open opens a DB
 // as a biodv.Taxonomy.
 func open(path string) (biodv.Taxonomy, error) {
 	return Open(path)

@@ -23,7 +23,7 @@ func TestDecodeTaxonList(t *testing.T) {
 	}
 
 	b = bytes.NewBufferString(noTaxBlob)
-	sp, err = decodeTaxonList(b)
+	sp, _ = decodeTaxonList(b)
 	if len(sp.Results) != 0 {
 		t.Errorf("number of species %d, want %d", len(sp.Results), 0)
 	}

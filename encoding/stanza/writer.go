@@ -125,7 +125,7 @@ func (w *Writer) fieldList(rec map[string]string) []string {
 	return fields
 }
 
-// writeField writes a field into a file.
+// WriteField writes a field into a file.
 func (w *Writer) writeField(f, v string) (err error) {
 	v = strings.TrimSpace(v)
 	if len(v) == 0 {

@@ -29,9 +29,9 @@ func TestCommandName(t *testing.T) {
 
 func TestAddCommand(t *testing.T) {
 	cases := []*Command{
-		&Command{UsageLine: "first command"},
-		&Command{UsageLine: "second"},
-		&Command{UsageLine: "THIRD"},
+		{UsageLine: "first command"},
+		{UsageLine: "second"},
+		{UsageLine: "THIRD"},
 	}
 	for _, c := range cases {
 		Add(c)

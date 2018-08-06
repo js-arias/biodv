@@ -178,7 +178,7 @@ func (sc *Scanner) Scan() bool {
 	}
 }
 
-// parseRecord parses a single record.
+// ParseRecord parses a single record.
 func (sc *Scanner) parseRecord() (record map[string]string, err error) {
 	record = make(map[string]string)
 	for {
@@ -216,7 +216,7 @@ func (sc *Scanner) parseRecord() (record map[string]string, err error) {
 	return record, nil
 }
 
-// parseFieldName parses a field name.
+// ParseFieldName parses a field name.
 // Delim indicates the character at the
 // end of the field name.
 func (sc *Scanner) parseFieldName() (field string, delim rune, err error) {
@@ -279,7 +279,7 @@ func (sc *Scanner) parseFieldName() (field string, delim rune, err error) {
 	return strings.ToLower(sc.b.String()), delim, nil
 }
 
-// parseFieldValue parses the value of a field.
+// ParseFieldValue parses the value of a field.
 // End indicates that the end-of-record was found,
 // this can be either an explicit end of record
 // ('%' character)
@@ -345,7 +345,7 @@ func (sc *Scanner) parseFieldValue() (value string, end bool) {
 	return sc.b.String(), end
 }
 
-// readRune reads a rune,
+// ReadRune reads a rune,
 // folding \r\n to \n.
 func readRune(r *bufio.Reader) (rune, error) {
 	r1, _, err := r.ReadRune()
@@ -363,7 +363,7 @@ func readRune(r *bufio.Reader) (rune, error) {
 	return r1, err
 }
 
-// skip read runes up to and including the rune delim
+// Skip read runes up to and including the rune delim
 // or until error.
 func skip(r *bufio.Reader, delim rune) error {
 	for {

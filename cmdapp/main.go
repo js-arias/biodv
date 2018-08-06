@@ -5,8 +5,7 @@
 // This work is derived from the go tool source code
 // Copyright 2011 The Go Authors.  All rights reserved.
 
-// Package cmdapp
-// implements a command line application
+// Package cmdapp implements a command line application
 // that host a set of commands
 // as in the go tool and git.
 package cmdapp

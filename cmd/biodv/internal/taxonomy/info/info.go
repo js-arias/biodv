@@ -105,18 +105,27 @@ func run(c *cmdapp.Command, args []string) error {
 		}
 		tax = ls[0]
 	}
+
+	if err := print(db, tax); err != nil {
+		return errors.Wrap(err, c.Name())
+	}
+	return nil
+}
+
+func print(db biodv.Taxonomy, tax biodv.Taxon) error {
 	var p biodv.Taxon
 	if pID := tax.Parent(); pID != "" {
+		var err error
 		p, err = db.TaxID(pID)
 		if err != nil {
-			return errors.Wrap(err, c.Name())
+			return err
 		}
 	}
 	fmt.Printf("%s %s\n", tax.Name(), tax.Value(biodv.TaxAuthor))
 	fmt.Printf("%s-ID: %s\n", dbName, tax.ID())
 	pLs, err := biodv.TaxParents(db, tax.Parent())
 	if err != nil {
-		return errors.Wrap(err, c.Name())
+		return err
 	}
 	for i, pt := range pLs {
 		if i > 0 {
@@ -134,7 +143,7 @@ func run(c *cmdapp.Command, args []string) error {
 		fmt.Printf("\tCorrect-Valid name\n")
 		ls, err := biodv.TaxList(db.Synonyms(tax.ID()))
 		if err != nil {
-			return errors.Wrap(err, c.Name())
+			return err
 		}
 		for _, syn := range ls {
 			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", syn.Name(), syn.Value(biodv.TaxAuthor), dbName, syn.ID())
@@ -148,7 +157,7 @@ func run(c *cmdapp.Command, args []string) error {
 	if tax.IsCorrect() {
 		ls, err := biodv.TaxList(db.Children(tax.ID()))
 		if err != nil {
-			return errors.Wrap(err, c.Name())
+			return err
 		}
 		if len(ls) > 0 {
 			fmt.Fprintf(os.Stderr, "\tContained taxa (%d):\n", len(ls))

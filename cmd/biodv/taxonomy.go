@@ -4,12 +4,10 @@
 //
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
-// Package taxonomy is a metapackage
-// to initialize tax.* [taxonomy] commands of biodv.
-package taxonomy
+package main
 
 import (
-	// initialize sub-commands
+	// initialize taxonomy sub-commands
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/add"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/info"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/list"

@@ -50,7 +50,7 @@ var (
 // RegisterTax makes a taxonomy driver
 // available by the provided name.
 // If Register is called twice with the same name
-// or if drives is nil,
+// or if driver is nil,
 // it panics.
 func RegisterTax(name string, driver DriverTax) {
 	taxDriversMu.Lock()
@@ -169,7 +169,7 @@ func NewTaxScan(sz int) *TaxScan {
 // return the scanner.
 //
 // It returns true,
-// if the element is added succesfully.
+// if the element is added successfully.
 func (tsc *TaxScan) Add(tax Taxon, err error) bool {
 	if tsc.err != nil {
 		return false

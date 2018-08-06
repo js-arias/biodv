@@ -107,7 +107,7 @@ func run(c *cmdapp.Command, args []string) error {
 	r := biodv.GetRank(rank)
 	var p biodv.Taxon
 	if parent != "" {
-		p, err = db.TaxID(parent)
+		p, _ = db.TaxID(parent)
 		if p == nil {
 			return errors.Errorf("%s: parent %q not in database", c.Name(), parent)
 		}

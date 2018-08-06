@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// Retyr is the number of times a request will be retried
+// Retry is the number of times a request will be retried
 // before aborted.
 var Retry = 5
 

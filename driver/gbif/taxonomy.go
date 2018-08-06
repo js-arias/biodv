@@ -160,6 +160,8 @@ func (db database) Synonyms(id string) *biodv.TaxScan {
 	return sc
 }
 
+// TaxonList returns an specific list of taxons
+// with a given set of parameters.
 func taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 	var err error
 	end := false
