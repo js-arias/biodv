@@ -155,7 +155,7 @@ func ids(tax biodv.Taxon) {
 	fmt.Printf("\t%s-ID: %s\n", dbName, tax.ID())
 	v := tax.Value(biodv.TaxExtern)
 	for _, e := range strings.Fields(v) {
-		fmt.Printf("\t%s\n", e)
+		fmt.Printf("\t\t%s\n", e)
 	}
 }
 
