@@ -60,6 +60,7 @@ func init() {
 
 var extName string
 var match bool
+var mapParent map[string]string
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&extName, "extern", "", "")
@@ -84,6 +85,8 @@ func run(c *cmdapp.Command, args []string) error {
 		return err
 	}
 
+	mapParent = make(map[string]string)
+
 	nm := strings.Join(args, " ")
 	if nm == "" {
 		ls := db.TaxList("")
@@ -99,17 +102,56 @@ func run(c *cmdapp.Command, args []string) error {
 }
 
 func procTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
-	tx := matchFn(db, ext, tax)
-	if tx != nil && !match {
-		update(tax, tx)
+	txs := matchFn(db, ext, tax)
+	if len(txs) == 1 {
+		tx := txs[0]
+		mapParent[tx.ID()] = tx.Parent()
+		if !match {
+			update(tax, tx)
+		}
+	}
+	if len(txs) == 0 {
+		fmt.Fprintf(os.Stderr, "warning: when searching %s: not in database\n", tax.Name())
 	}
 	ls := db.TaxList(tax.ID())
 	for _, c := range ls {
 		procTaxon(db, ext, c)
 	}
+	if len(txs) > 1 {
+		if tx := matchParent(db, ext, tax, txs); tx != nil {
+			if err := tax.Set(biodv.TaxExtern, extName+":"+tx.ID()); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
+			}
+			mapParent[tx.ID()] = tx.Parent()
+			if !match {
+				update(tax, tx)
+			}
+			return
+		}
+		if tx := matchChildren(db, ext, tax, txs); tx != nil {
+			if err := tax.Set(biodv.TaxExtern, extName+":"+tx.ID()); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
+			}
+			mapParent[tx.ID()] = tx.Parent()
+			if !match {
+				update(tax, tx)
+			}
+			return
+		}
+
+		fmt.Fprintf(os.Stderr, "warning: ambiguous name:\n")
+		for _, tx := range txs {
+			fmt.Fprintf(os.Stderr, "\t%s:%s\t%s %s\t", extName, tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
+			if tx.IsCorrect() {
+				fmt.Fprintf(os.Stderr, "correct name\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "synonym\n")
+			}
+		}
+	}
 }
 
-func matchFn(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) biodv.Taxon {
+func matchFn(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) []biodv.Taxon {
 	eid := getExternID(tax)
 	if eid != "" {
 		if match {
@@ -121,34 +163,81 @@ func matchFn(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) biodv.Tax
 		}
 		if tx == nil {
 			fmt.Fprintf(os.Stderr, "warning: when looking for %s: not found\n", tax.Name())
+		} else {
+			mapParent[tx.ID()] = tx.Parent()
 		}
-		return tx
+		return []biodv.Taxon{tx}
 	}
 	ls, err := biodv.TaxList(ext.Taxon(tax.Name()))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when searching %s: %v\n", tax.Name(), err)
 		return nil
 	}
-	if len(ls) == 0 {
-		fmt.Fprintf(os.Stderr, "warning: when searching %s: not in database\n", tax.Name())
-		return nil
-	}
-	if len(ls) > 1 {
-		fmt.Fprintf(os.Stderr, "warning: ambiguous name:\n")
-		for _, tx := range ls {
-			fmt.Fprintf(os.Stderr, "\t%s:%s\t%s %s\t", extName, tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
-			if tx.IsCorrect() {
-				fmt.Fprintf(os.Stderr, "correct name\n")
-			} else {
-				fmt.Fprintf(os.Stderr, "synonym\n")
-			}
+	if len(ls) == 1 {
+		tx := ls[0]
+		if err := tax.Set(biodv.TaxExtern, extName+":"+tx.ID()); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
 		}
+	}
+	return ls
+}
+
+// MathcParent search for an extern taxon
+// which is parent,
+// is also the parent of the current taxon in the database.
+func matchParent(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon, ls []biodv.Taxon) biodv.Taxon {
+	p := db.TaxEd(tax.Parent())
+	if p == nil {
 		return nil
 	}
-	if err := tax.Set(biodv.TaxExtern, extName+":"+ls[0].ID()); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
+	eid := getExternID(p)
+	if eid == "" {
+		return nil
 	}
-	return ls[0]
+
+	for _, tx := range ls {
+		if tx.Parent() == eid {
+			return tx
+		}
+	}
+	return nil
+}
+
+// MatchChildren search for an extern taxon
+// which is children
+// is also a children of the current taxon in the database.
+func matchChildren(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon, ls []biodv.Taxon) biodv.Taxon {
+	children := db.TaxList(tax.ID())
+	var pID string
+	for _, c := range children {
+		eid := getExternID(c)
+		if eid == "" {
+			continue
+		}
+		p, ok := mapParent[eid]
+		if !ok {
+			continue
+		}
+		if pID == "" {
+			pID = p
+			continue
+		}
+		if pID != p {
+			// there is no agreement between diferent taxons
+			return nil
+		}
+	}
+	if pID == "" {
+		// no parent has assigned to the map
+		return nil
+	}
+
+	for _, tx := range ls {
+		if tx.ID() == pID {
+			return tx
+		}
+	}
+	return nil
 }
 
 func update(tax *taxonomy.Taxon, tx biodv.Taxon) {
