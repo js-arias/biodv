@@ -415,7 +415,7 @@ func (db *DB) Add(name, parent string, rank biodv.Rank, correct bool) (*Taxon, e
 		return nil, errors.Errorf("taxonomy: db: add: empty taxon name")
 	}
 	if _, dup := db.ids[name]; dup {
-		return nil, errors.Errorf("taxonomy: db: add %q: taxon already in database")
+		return nil, errors.Errorf("taxonomy: db: add %q: taxon already in database", name)
 	}
 	parent = biodv.TaxCanon(parent)
 	var p *Taxon

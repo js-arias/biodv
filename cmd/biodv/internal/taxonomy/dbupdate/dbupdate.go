@@ -69,7 +69,7 @@ func register(c *cmdapp.Command) {
 	c.Flag.BoolVar(&match, "m", false, "")
 }
 
-func run(c *cmdapp.Command, args []string) error {
+func run(c *cmdapp.Command, args []string) (err error) {
 	if extName == "" {
 		return errors.Errorf("%s: an external database should be defined", c.Name())
 	}
@@ -84,6 +84,12 @@ func run(c *cmdapp.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = db.Commit()
+		if err != nil {
+			err = errors.Wrap(err, c.Name())
+		}
+	}()
 
 	mapParent = make(map[string]string)
 
@@ -93,12 +99,15 @@ func run(c *cmdapp.Command, args []string) error {
 		for _, c := range ls {
 			procTaxon(db, ext, c)
 		}
-		return db.Commit()
+		return err
 	}
 
 	tax := db.TaxEd(nm)
+	if tax == nil {
+		return nil
+	}
 	procTaxon(db, ext, tax)
-	return db.Commit()
+	return err
 }
 
 func procTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {

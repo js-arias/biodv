@@ -142,7 +142,10 @@ func run(c *cmdapp.Command, args []string) error {
 			return errors.Wrapf(err, "%s: while reading from %s", c.Name(), a)
 		}
 	}
-	return db.Commit()
+	if err := db.Commit(); err != nil {
+		return errors.Wrap(err, c.Name())
+	}
+	return nil
 }
 
 // Read reads the data from a reader.

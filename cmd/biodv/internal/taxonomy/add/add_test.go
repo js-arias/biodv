@@ -43,7 +43,7 @@ Emeus crassus
 # Rhedosaurus
 ; Indominus rex
 
-Eurypteryx curtus
+Euryapteryx curtus
 Pachyornis geranoides
 Pachyornis elephantopus
 Pachyornis australis
