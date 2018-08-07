@@ -310,6 +310,118 @@ func (tax *Taxon) Set(key, value string) error {
 	return nil
 }
 
+// SetRank sets the rank of a taxon.
+// The new rank should be compatible with the taxonomy.
+func (tax *Taxon) SetRank(rank biodv.Rank) error {
+	if tax.Rank() == rank {
+		return nil
+	}
+	if !tax.parent.isConsistentDown(tax.IsCorrect(), rank) {
+		return errors.Errorf("taxonomy: db: setrank %s: inconsistent parent rank", tax.Name())
+	}
+	for _, c := range tax.children {
+		if !c.isConsistentUp(tax.IsCorrect(), rank) {
+			return errors.Errorf("taxonomy: db: setrank %s: inconsistent children rank", tax.Name())
+		}
+	}
+	tax.data[rankKey] = rank.String()
+	tax.db.changed = true
+	return nil
+}
+
+// Move moves a taxon,
+// with the indicated valid (true)/synonym(false) status
+// to a new parent.
+// The taxon should be consistent with the database taxonomy.
+// It the taxon is set a synonym
+// all of its children will be set as synonyms
+// of the new parent.
+func (tax *Taxon) Move(parent string, status bool) error {
+	parent = getTaxonID(parent)
+	p := tax.db.TaxEd(parent)
+	if p == tax.parent && status == tax.IsCorrect() {
+		return nil
+	}
+	if p == nil {
+		if !status {
+			return errors.Errorf("taxonomy: db: move %q: set as synonym without a parent", tax.Name())
+		}
+		if parent != "" {
+			return errors.Errorf("taxonomy: db: move %q: parent %q not in database", tax.Name(), parent)
+		}
+		parent = ""
+	} else {
+		if !p.IsCorrect() {
+			return errors.Errorf("taxonomy: db: move %q: parent %q is a synonym", tax.Name(), p.Name())
+		}
+		parent = p.ID()
+	}
+	if !p.isConsistentDown(status, tax.Rank()) {
+		return errors.Errorf("taxonomy: db: add %q: inconsistent rank", tax.Name())
+	}
+
+	// remove the taxon from its previous parent
+	if tax.parent != nil {
+		for i, d := range tax.parent.children {
+			if d != tax {
+				continue
+			}
+			copy(tax.parent.children[i:], tax.parent.children[i+1:])
+			tax.parent.children[len(tax.parent.children)-1] = nil
+			tax.parent.children = tax.parent.children[:len(tax.parent.children)-1]
+			break
+		}
+	} else {
+		for i, d := range tax.db.root {
+			if d != tax {
+				continue
+			}
+			copy(tax.db.root[i:], tax.db.root[i+1:])
+			tax.db.root[len(tax.db.root)-1] = nil
+			tax.db.root = tax.db.root[:len(tax.db.root)-1]
+			break
+		}
+	}
+
+	if status {
+		tax.data[correctKey] = "true"
+	} else {
+		tax.data[correctKey] = "false"
+	}
+
+	tax.parent = p
+	tax.data[parentKey] = parent
+	if p != nil {
+		p.children = append(p.children, tax)
+	} else {
+		tax.db.root = append(tax.db.root, tax)
+	}
+	tax.moveChildren()
+	tax.db.changed = true
+	return nil
+}
+
+// MoveChildren moves the children taxa of a synonym
+// to its parent.
+func (tax *Taxon) moveChildren() {
+	if len(tax.children) == 0 {
+		return
+	}
+	if tax.IsCorrect() {
+		return
+	}
+	if tax.parent == nil {
+		return
+	}
+
+	for _, c := range tax.children {
+		c.data[parentKey] = tax.parent.ID()
+		c.parent = tax.parent
+	}
+	tax.parent.children = append(tax.parent.children, tax.children...)
+	tax.children = nil
+}
+
 // GetService returns the service
 // (extern Taxonomy identifier)
 // that provides an external ID.
@@ -359,6 +471,29 @@ func (tax *Taxon) isConsistentDown(correct bool, rank biodv.Rank) bool {
 		return false
 	}
 	return true
+}
+
+// IsConsistentUp returns true if a rank is consistent
+// in a taxonomy.
+func (tax *Taxon) isConsistentUp(correct bool, rank biodv.Rank) bool {
+	if rank == biodv.Unranked {
+		return true
+	}
+	if tax.Rank() == biodv.Unranked {
+		for _, c := range tax.children {
+			if !c.isConsistentUp(correct, rank) {
+				return false
+			}
+		}
+		return true
+	}
+	if tax.Rank() > rank {
+		return true
+	}
+	if tax.Rank() == rank && !correct {
+		return true
+	}
+	return false
 }
 
 func init() {
@@ -433,7 +568,7 @@ func (db *DB) Add(name, parent string, rank biodv.Rank, correct bool) (*Taxon, e
 		}
 	}
 	if p == nil && !correct {
-		return nil, errors.Errorf("taxonomy: db: add %q: synonym without a parent")
+		return nil, errors.Errorf("taxonomy: db: add %q: synonym without a parent", name)
 	}
 	tax := &Taxon{
 		db:   db,

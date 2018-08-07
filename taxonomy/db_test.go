@@ -7,6 +7,7 @@
 package taxonomy
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/js-arias/biodv"
@@ -112,5 +113,73 @@ func TestAdd(t *testing.T) {
 
 	if !db.changed {
 		t.Errorf("database has changed, but no change recorded")
+	}
+}
+
+func TestMove(t *testing.T) {
+	db := &DB{ids: make(map[string]*Taxon)}
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	tax := db.TaxEd("Pan")
+	if err := tax.Move("Homo", false); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if tax.IsCorrect() {
+		t.Errorf("after movement \"Pan\" should be a synonym: %v", tax.data[correctKey])
+	}
+	if tax.Parent() != "Homo" {
+		t.Errorf("taxon %q with wrong parent: %q, want %q", tax.Name(), tax.Parent(), "Homo")
+	}
+	ls, err := biodv.TaxList(db.Children("Homo"))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(ls) != 3 {
+		t.Errorf("\"Homo\" children found %d records, want %d", len(ls), 3)
+	}
+
+	tax = db.TaxEd("Pithecanthropus")
+	if err := tax.Move("Hominidae", true); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !tax.IsCorrect() {
+		t.Errorf("after movement \"Pithecanthropus\" should be a correct")
+	}
+	if tax.Parent() == "Homo" {
+		t.Errorf("taxon %q with wrong parent: %q, want %q", tax.Name(), tax.Parent(), "Hominidae")
+	}
+	ls, err = biodv.TaxList(db.Synonyms("Homo"))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(ls) != 1 {
+		t.Errorf("\"Homo\" synonyms found %d records, want %d", len(ls), 1)
+	}
+}
+
+func TestSetRank(t *testing.T) {
+	db := &DB{ids: make(map[string]*Taxon)}
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	tax := db.TaxEd("Hominidae")
+	if err := tax.SetRank(biodv.Class); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if tax.Rank() != biodv.Class {
+		t.Errorf("taxon %q unnexpected rank: %v, want: %v", tax.Name(), tax.Rank(), biodv.Class)
+	}
+
+	tax = db.TaxEd("Pan")
+	if err := tax.SetRank(biodv.Species); err == nil {
+		t.Errorf("wanted an error: inconsistent rank on children")
+	}
+	if tax.Rank() != biodv.Genus {
+		t.Errorf("taxon %q unnexpected rank: %v, want: %v", tax.Name(), tax.Rank(), biodv.Genus)
 	}
 }
