@@ -84,7 +84,9 @@ func run(c *cmdapp.Command, args []string) (err error) {
 		return err
 	}
 	defer func() {
-		err = db.Commit()
+		if err == nil {
+			err = db.Commit()
+		}
 		if err != nil {
 			err = errors.Wrap(err, c.Name())
 		}
