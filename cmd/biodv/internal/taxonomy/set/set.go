@@ -73,11 +73,11 @@ func register(c *cmdapp.Command) {
 
 func run(c *cmdapp.Command, args []string) error {
 	if key == "" {
-		return errors.Errorf("%s: a key should be defined")
+		return errors.Errorf("%s: a key should be defined", c.Name())
 	}
 	nm := strings.Join(args, " ")
 	if nm == "" {
-		return errors.Errorf("%s: a taxon name should be given")
+		return errors.Errorf("%s: a taxon name should be given", c.Name())
 	}
 
 	db, err := taxonomy.Open("")

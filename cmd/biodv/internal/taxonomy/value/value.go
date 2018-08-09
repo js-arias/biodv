@@ -116,18 +116,29 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 
 	if key == "" {
-		for _, k := range tax.Keys() {
+		ls := []string{"name", "id", "rank", "correct"}
+		ls = append(ls, tax.Keys()...)
+		for _, k := range ls {
 			fmt.Printf("%s\n", k)
 		}
 		return nil
 	}
-	if key == biodv.TaxExtern {
+	switch strings.ToLower(key) {
+	case "name":
+		fmt.Printf("%s\n", tax.Name())
+	case "id":
+		fmt.Printf("%s\n", tax.ID())
+	case "rank":
+		fmt.Printf("%s\n", tax.Rank())
+	case "correct":
+		fmt.Printf("%v\n", tax.IsCorrect())
+	case biodv.TaxExtern:
 		ext := tax.Value(key)
 		for _, e := range strings.Fields(ext) {
 			fmt.Printf("%s\n", e)
 		}
-		return nil
+	default:
+		fmt.Printf("%s\n", tax.Value(key))
 	}
-	fmt.Printf("%s\n", tax.Value(key))
 	return nil
 }
