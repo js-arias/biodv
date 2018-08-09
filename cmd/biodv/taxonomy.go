@@ -16,4 +16,5 @@ import (
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/list"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/set"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/validate"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/value"
 )

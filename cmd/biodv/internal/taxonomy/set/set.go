@@ -43,6 +43,7 @@ Options are:
                    given, the indicated external ID will be eliminated.
         reference  to set a bibliographic reference.
         source     to set the ID of the source of the taxonomic data.
+      For a set of available keys of a given taxon, use tax.value.
 
     -v <value>
     --value <value>
