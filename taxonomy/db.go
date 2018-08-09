@@ -253,9 +253,12 @@ func (tax *Taxon) Set(key, value string) error {
 	case correctKey:
 		return errors.Errorf("taxonomy: taxon: invalid key value: %s", key)
 	case biodv.TaxExtern:
+		if value == "" {
+			return nil
+		}
 		srv := getService(value)
 		if srv == "" {
-			return errors.Errorf("taxonomy: taxon: invalid extern ID value: %s", value)
+			return errors.New("taxonomy: taxon: invalid extern ID value")
 		}
 		ext := strings.Fields(tax.data[key])
 		if srv+":" == value {

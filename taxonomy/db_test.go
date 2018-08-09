@@ -183,3 +183,20 @@ func TestSetRank(t *testing.T) {
 		t.Errorf("taxon %q unnexpected rank: %v, want: %v", tax.Name(), tax.Rank(), biodv.Genus)
 	}
 }
+
+func TestSet(t *testing.T) {
+	db := &DB{ids: make(map[string]*Taxon)}
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	db.changed = false
+
+	tax := db.TaxEd("Hominidae")
+	if err := tax.Set(biodv.TaxExtern, "    "); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if db.changed {
+		t.Errorf("database should be unchanged")
+	}
+}
