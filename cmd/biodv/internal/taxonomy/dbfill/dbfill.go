@@ -5,7 +5,7 @@
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
 //Package dbfill implements the tax.db.fill command,
-// i.e. add taxons from an extern DB.
+// i.e. add taxons from an external DB.
 package dbfill
 
 import (
@@ -23,7 +23,7 @@ import (
 var cmd = &cmdapp.Command{
 	UsageLine: `tax.db.fill -e|--extern <database> [-u|--uprank <rank>]
 		[<name>]`,
-	Short: "add taxons from an extern DB",
+	Short: "add taxons from an external DB",
 	Long: `
 Command tax.db.fill adds additional taxons from an external DB to the
 current database. By default only synonyms (of any rank), and children
@@ -81,7 +81,7 @@ func run(c *cmdapp.Command, args []string) (err error) {
 
 	db, err := taxonomy.Open("")
 	if err != nil {
-		return err
+		return errors.Wrap(err, c.Name())
 	}
 	defer func() {
 		if err == nil {

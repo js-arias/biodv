@@ -5,7 +5,7 @@
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
 // Package dbupdate implements the tax.db.update command,
-// i.e. update taxon information from an extern DB.
+// i.e. update taxon information from an external DB.
 package dbupdate
 
 import (
@@ -22,7 +22,7 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: `tax.db.update -e|--extern <database> [-m|--match] [<name>]`,
-	Short:     "update taxon information from an extern DB",
+	Short:     "update taxon information from an external DB",
 	Long: `
 Command tax.db.update reads an external database and update the
 additional fields stored on the external database. Neither the name,
@@ -82,7 +82,7 @@ func run(c *cmdapp.Command, args []string) (err error) {
 
 	db, err := taxonomy.Open("")
 	if err != nil {
-		return err
+		return errors.Wrap(err, c.Name())
 	}
 	defer func() {
 		if err == nil {

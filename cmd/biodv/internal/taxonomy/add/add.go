@@ -102,7 +102,7 @@ func register(c *cmdapp.Command) {
 func run(c *cmdapp.Command, args []string) error {
 	db, err := taxonomy.Open("")
 	if err != nil {
-		return err
+		return errors.Wrap(err, c.Name())
 	}
 	r := biodv.GetRank(rank)
 	var p biodv.Taxon

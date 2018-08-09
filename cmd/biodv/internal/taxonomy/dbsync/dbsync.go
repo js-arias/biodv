@@ -75,7 +75,7 @@ func run(c *cmdapp.Command, args []string) (err error) {
 
 	db, err := taxonomy.Open("")
 	if err != nil {
-		return err
+		return errors.Wrap(err, c.Name())
 	}
 	defer func() {
 		if err == nil {
