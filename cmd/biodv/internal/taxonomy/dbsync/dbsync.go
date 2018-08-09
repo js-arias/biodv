@@ -169,11 +169,9 @@ func addTaxons(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 		if tx.correct != tax.IsCorrect() {
 			toMove[tax.ID()] = true
 		}
-		if tx.parent != "" && tax.Parent() != "" {
+		if tx.parent != "" {
 			p := db.TaxEd(extName + ":" + tx.parent)
-			if p == nil {
-				toMove[tax.ID()] = true
-			} else if p.ID() != tax.Parent() {
+			if p != nil && p.ID() != tax.Parent() {
 				toMove[tax.ID()] = true
 			}
 		}
