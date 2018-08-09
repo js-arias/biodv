@@ -22,7 +22,7 @@ func init() {
 	biodv.RegisterTax("gbif", OpenTax)
 }
 
-// NubO is a parameter used to open a taxonomy
+// Nub0 is a parameter used to open a taxonomy
 // that accepts taxons with nubKey = 0,
 // in such cases it will use the key field
 // instead of the nubKey.

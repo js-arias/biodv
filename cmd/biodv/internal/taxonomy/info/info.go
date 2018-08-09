@@ -145,10 +145,7 @@ func print(db biodv.Taxonomy, tax biodv.Taxon) error {
 	if p != nil && tax.IsCorrect() {
 		fmt.Printf("\tParent: %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
 	}
-	if err := contained(db, tax); err != nil {
-		return err
-	}
-	return nil
+	return contained(db, tax)
 }
 
 func ids(tax biodv.Taxon) {

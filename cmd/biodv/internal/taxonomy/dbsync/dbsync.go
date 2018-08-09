@@ -125,7 +125,7 @@ func run(c *cmdapp.Command, args []string) (err error) {
 		return
 	}
 
-	// make all movements
+	// update ranks
 	for i := 0; i < maxIts; i++ {
 		if len(reRank) == 0 {
 			break

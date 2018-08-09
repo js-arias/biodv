@@ -234,7 +234,7 @@ func matchChildren(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon, ls 
 			continue
 		}
 		if pID != p {
-			// there is no agreement between diferent taxons
+			// there is no agreement between different taxons
 			return nil
 		}
 	}
