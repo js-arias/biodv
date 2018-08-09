@@ -41,7 +41,7 @@ type DB struct {
 // When using an editable DB prefer TaxEd.
 func (db *DB) Taxon(name string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(1)
-	name = biodv.TaxCanon(name)
+	name = getTaxonID(name)
 	if name == "" {
 		sc.Add(nil, errors.Errorf("taxonomy: db: taxon: empty taxon name"))
 		return sc
