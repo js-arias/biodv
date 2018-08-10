@@ -116,7 +116,9 @@ func procTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 	txs := matchFn(db, ext, tax)
 	if len(txs) == 1 {
 		tx := txs[0]
-		mapParent[tx.ID()] = tx.Parent()
+		if tx.IsCorrect() {
+			mapParent[tx.ID()] = tx.Parent()
+		}
 		if !match {
 			update(tax, tx)
 		}
@@ -133,7 +135,9 @@ func procTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 			if err := tax.Set(biodv.TaxExtern, extName+":"+tx.ID()); err != nil {
 				fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
 			}
-			mapParent[tx.ID()] = tx.Parent()
+			if tx.IsCorrect() {
+				mapParent[tx.ID()] = tx.Parent()
+			}
 			if !match {
 				update(tax, tx)
 			}
@@ -143,7 +147,9 @@ func procTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 			if err := tax.Set(biodv.TaxExtern, extName+":"+tx.ID()); err != nil {
 				fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
 			}
-			mapParent[tx.ID()] = tx.Parent()
+			if tx.IsCorrect() {
+				mapParent[tx.ID()] = tx.Parent()
+			}
 			if !match {
 				update(tax, tx)
 			}
@@ -174,7 +180,7 @@ func matchFn(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) []biodv.T
 		}
 		if tx == nil {
 			fmt.Fprintf(os.Stderr, "warning: when looking for %s: not found\n", tax.Name())
-		} else {
+		} else if tx.IsCorrect() {
 			mapParent[tx.ID()] = tx.Parent()
 		}
 		return []biodv.Taxon{tx}
