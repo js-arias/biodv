@@ -5,7 +5,7 @@
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
 // Package move implements the tax.move command,
-// i.e. changes a taxon parent.
+// i.e. change a taxon parent.
 package move
 
 import (
@@ -19,7 +19,7 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: "tax.move [--to <name>] [-s|--status <value>] <name>",
-	Short:     "changes a taxon parent",
+	Short:     "change a taxon parent",
 	Long: `
 Command tax.move changes moves the taxon to a new parent. If the -s,
 or --status option is not defined, it will move the taxon with their

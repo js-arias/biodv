@@ -25,6 +25,11 @@ Command tax.set sets the value of a given key for the indicated taxon,
 overwriting any previous value. If value is empty, the content of the
 key will be eliminated.
 
+Command tax.set can be used to set almost any key value, except the
+taxon name (that can not be changed), the rank (use tax.rank), and the
+parent and status (correct/valid or synonym) of the taxon
+(use tax.move).
+
 Except for some standard keys, no content of the values will be
 validated by the program, or the database.
 
