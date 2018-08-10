@@ -22,11 +22,12 @@ func init() {
 	biodv.RegisterTax("gbif", OpenTax)
 }
 
-// Nub0 is a parameter used to open a taxonomy
-// that accepts taxons with nubKey = 0,
-// in such cases it will use the key field
-// instead of the nubKey.
-const Nub0 = "nub-0"
+// NoNub0 is a parameter used to open a taxonomy
+// that skip taxons with nubKey = 0,
+// by default,
+// when nub is 0,
+// it will use the key field instead of the nubKey.
+const NoNub0 = "no-nub-0"
 
 // OpenTax returns the GBIF
 // taxonomy handler,
@@ -38,13 +39,13 @@ func OpenTax(param string) (biodv.Taxonomy, error) {
 	if reqChan == nil {
 		initReqs()
 	}
-	if param == Nub0 {
-		useNub0 = true
+	if param == NoNub0 {
+		useNub0 = false
 	}
 	return database{}, nil
 }
 
-var useNub0 = false
+var useNub0 = true
 
 // SpAnswer is the answer for the species request.
 type spAnswer struct {

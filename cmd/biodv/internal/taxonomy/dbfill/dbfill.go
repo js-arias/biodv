@@ -168,7 +168,7 @@ func fillUp(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon, rank biodv
 		}
 	}
 	if err := tax.Move(p.ID(), tax.IsCorrect()); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: when moving %q to %q: %v\n", p.Name(), tax.Name(), err)
+		fmt.Fprintf(os.Stderr, "warning: when moving %q to %q: %v\n", tax.Name(), p.Name(), err)
 		return nil
 	}
 	return p
