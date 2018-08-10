@@ -12,6 +12,7 @@ import (
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/dbfill"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/dbsync"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/dbupdate"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/format"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/info"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/list"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/taxonomy/move"

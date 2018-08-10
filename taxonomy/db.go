@@ -360,7 +360,7 @@ func (tax *Taxon) Move(parent string, status bool) error {
 		parent = p.ID()
 	}
 	if !p.isConsistentDown(status, tax.Rank()) {
-		return errors.Errorf("taxonomy: db: add %q: inconsistent rank", tax.Name())
+		return errors.Errorf("taxonomy: db: move %q: inconsistent rank", tax.Name())
 	}
 
 	// remove the taxon from its previous parent
