@@ -226,6 +226,16 @@ func getSeniorTaxon(db *taxonomy.DB, ext biodv.Taxonomy, parent string) *taxonom
 	}
 	extTaxons[parent] = externTaxon{et.Parent(), et.Rank(), et.IsCorrect()}
 
+	// The taxon exists,
+	// but it was not matched
+	// or matched to another taxon,
+	// so it can be say that is the same taxon.
+	p = db.TaxEd(et.Name())
+	if p != nil {
+		fmt.Fprintf(os.Stderr, "warning: ambiguous parent %q [%s:%s], on DB [%s:%s]", et.Name(), extName, et.ID(), extName, getExternID(p))
+		return nil
+	}
+
 	pID := ""
 	if gp := db.TaxEd(extName + ":" + et.Parent()); gp != nil {
 		pID = gp.ID()

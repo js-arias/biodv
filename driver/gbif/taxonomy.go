@@ -81,6 +81,8 @@ type species struct {
 	Order   string
 	Family  string
 	Genus   string
+
+	Issues []string
 }
 
 func (sp *species) Name() string {
@@ -135,6 +137,17 @@ func (sp *species) Value(key string) string {
 	return ""
 }
 
+// NoMatch search for the not match error
+// on a taxon name.
+func (sp *species) noMatch() bool {
+	for _, i := range sp.Issues {
+		if i == "BACKBONE_MATCH_NONE" {
+			return true
+		}
+	}
+	return false
+}
+
 func (db database) Taxon(name string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(300)
 	name = strings.Join(strings.Fields(name), " ")
@@ -146,7 +159,7 @@ func (db database) Taxon(name string) *biodv.TaxScan {
 	param := url.Values{}
 	param.Add("name", name)
 	param.Add("limit", "300")
-	go taxonList(sc, req, param)
+	go db.taxonList(sc, req, param)
 	return sc
 }
 
@@ -160,7 +173,7 @@ func (db database) Children(id string) *biodv.TaxScan {
 	req := "species/" + id + "/children?"
 	param := url.Values{}
 	param.Add("limit", "300")
-	go taxonList(sc, req, param)
+	go db.taxonList(sc, req, param)
 	return sc
 }
 
@@ -174,14 +187,17 @@ func (db database) Synonyms(id string) *biodv.TaxScan {
 	req := "species/" + id + "/synonyms?"
 	param := url.Values{}
 	param.Add("limit", "300")
-	go taxonList(sc, req, param)
+	go db.taxonList(sc, req, param)
 	return sc
 }
 
 // TaxonList returns an specific list of taxons
 // with a given set of parameters.
-func taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
+func (db database) taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 	var err error
+	// nubs store all the nubs found
+	nubs := make(map[int64]bool)
+
 	end := false
 	for off := int64(0); !end; {
 		if off > 0 {
@@ -201,13 +217,22 @@ func taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 				}
 
 				for _, sp := range resp.Results {
+					// skip taxons with no match
+					// to the GBIF backbone
+					if sp.noMatch() {
+						continue
+					}
 					nub := sp.NubKey
 					if nub == 0 && useNub0 {
 						nub = sp.Key
 					}
 					if sp.Key != nub {
+						if !nubs[nub] {
+							nubs[nub] = false
+						}
 						continue
 					}
+					nubs[nub] = true
 					if !sc.Add(sp, nil) {
 						return
 					}
@@ -229,6 +254,22 @@ func taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 			}
 			sc.Add(nil, errors.Wrap(err, "gbif: taxonomy"))
 			return
+		}
+
+		// Add taxons if the nun taxon was found,
+		// but never included
+		// (for example,
+		// when searching an orthographic variant)
+		for id, ok := range nubs {
+			if ok {
+				continue
+			}
+			sp, err := db.TaxID(strconv.FormatInt(id, 10))
+			if err != nil {
+				sc.Add(nil, err)
+				return
+			}
+			sc.Add(sp, nil)
 		}
 	}
 	sc.Add(nil, nil)
