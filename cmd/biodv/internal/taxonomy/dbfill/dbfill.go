@@ -4,7 +4,7 @@
 //
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
-//Package dbfill implements the tax.db.fill command,
+// Package dbfill implements the tax.db.fill command,
 // i.e. add taxons from an external DB.
 package dbfill
 
