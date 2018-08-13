@@ -43,6 +43,13 @@ Options are:
     --uprank <rank>
       If set, parent taxons, up to the given rank, will be added to
       the database.
+      Valid ranks are:
+        kingdom
+        class
+        order
+        family
+        genus
+        species
 
     <name>
       If set, only the indicated taxon, and its descendants (or its
@@ -210,9 +217,27 @@ func getExternTaxon(ext biodv.Taxonomy, id string) biodv.Taxon {
 }
 
 func fillTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
+	// fill descendants
+	defer func() {
+		desc := db.TaxList(tax.ID())
+		for _, d := range desc {
+			fillTaxon(db, ext, d)
+		}
+	}()
+
 	eid := getExternID(tax)
 	if eid == "" {
 		return
+	}
+
+	// add children,
+	// only if it at or below species.
+	if getRank(db, tax) >= biodv.Species {
+		ls, err := biodv.TaxList(ext.Children(eid))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: when looking for %s children: %v\n", tax.Name(), err)
+		}
+		fillList(db, tax, ls)
 	}
 
 	// add synonyms
@@ -221,22 +246,6 @@ func fillTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 		fmt.Fprintf(os.Stderr, "warning: when looking for %s synonyms: %v\n", tax.Name(), err)
 	}
 	fillList(db, tax, ls)
-
-	// add children,
-	// only if it at or below species.
-	if getRank(db, tax) < biodv.Species {
-		return
-	}
-	ls, err = biodv.TaxList(ext.Children(eid))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: when looking for %s children: %v\n", tax.Name(), err)
-	}
-	fillList(db, tax, ls)
-
-	desc := db.TaxList(tax.ID())
-	for _, d := range desc {
-		fillTaxon(db, ext, d)
-	}
 }
 
 func fillList(db *taxonomy.DB, tax *taxonomy.Taxon, ls []biodv.Taxon) {
