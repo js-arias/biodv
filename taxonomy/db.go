@@ -495,6 +495,7 @@ func (tax *Taxon) Delete(rec bool) {
 	}
 	tax.removeFromParent()
 	tax.remove()
+	tax.db.changed = true
 }
 
 func (tax *Taxon) removeFromParent() {
