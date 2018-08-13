@@ -363,28 +363,7 @@ func (tax *Taxon) Move(parent string, status bool) error {
 		return errors.Errorf("taxonomy: db: move %q: inconsistent rank", tax.Name())
 	}
 
-	// remove the taxon from its previous parent
-	if tax.parent != nil {
-		for i, d := range tax.parent.children {
-			if d != tax {
-				continue
-			}
-			copy(tax.parent.children[i:], tax.parent.children[i+1:])
-			tax.parent.children[len(tax.parent.children)-1] = nil
-			tax.parent.children = tax.parent.children[:len(tax.parent.children)-1]
-			break
-		}
-	} else {
-		for i, d := range tax.db.root {
-			if d != tax {
-				continue
-			}
-			copy(tax.db.root[i:], tax.db.root[i+1:])
-			tax.db.root[len(tax.db.root)-1] = nil
-			tax.db.root = tax.db.root[:len(tax.db.root)-1]
-			break
-		}
-	}
+	tax.removeFromParent()
 
 	if status {
 		tax.data[correctKey] = "true"
@@ -497,6 +476,83 @@ func (tax *Taxon) isConsistentUp(correct bool, rank biodv.Rank) bool {
 		return true
 	}
 	return false
+}
+
+// Delete removes a taxon from the taxonomy.
+// If rec is true,
+// it will also remove all the descendants of the taxon,
+// otherwise it will move all the children
+// to the parent of the taxon.
+// If the taxon is on the root,
+// the synonyms will be also removed.
+func (tax *Taxon) Delete(rec bool) {
+	if rec {
+		ls := make([]*Taxon, len(tax.children))
+		copy(ls, tax.children)
+		for _, c := range ls {
+			c.Delete(true)
+		}
+	}
+	tax.removeFromParent()
+	tax.remove()
+}
+
+func (tax *Taxon) removeFromParent() {
+	// remove the taxon from its previous parent
+	if tax.parent != nil {
+		for i, d := range tax.parent.children {
+			if d != tax {
+				continue
+			}
+			copy(tax.parent.children[i:], tax.parent.children[i+1:])
+			tax.parent.children[len(tax.parent.children)-1] = nil
+			tax.parent.children = tax.parent.children[:len(tax.parent.children)-1]
+			break
+		}
+	} else {
+		for i, d := range tax.db.root {
+			if d != tax {
+				continue
+			}
+			copy(tax.db.root[i:], tax.db.root[i+1:])
+			tax.db.root[len(tax.db.root)-1] = nil
+			tax.db.root = tax.db.root[:len(tax.db.root)-1]
+			break
+		}
+	}
+}
+
+func (tax *Taxon) remove() {
+	if tax.parent == nil {
+		for _, c := range tax.children {
+			if !c.IsCorrect() {
+				c.parent = nil
+				tax.db.deleteIDs(c)
+				continue
+			}
+			c.data[parentKey] = ""
+			c.parent = nil
+			tax.db.root = append(tax.db.root, c)
+		}
+	} else {
+		for _, c := range tax.children {
+			c.data[parentKey] = tax.parent.ID()
+			c.parent = tax.parent
+		}
+		tax.parent.children = append(tax.parent.children, tax.children...)
+	}
+	tax.children = nil
+	tax.parent = nil
+	tax.db.deleteIDs(tax)
+}
+
+func (db *DB) deleteIDs(tax *Taxon) {
+	delete(db.ids, tax.ID())
+
+	ext := strings.Fields(tax.Value(biodv.TaxExtern))
+	for _, e := range ext {
+		delete(db.ids, e)
+	}
 }
 
 func init() {

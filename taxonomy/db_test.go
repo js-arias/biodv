@@ -200,3 +200,36 @@ func TestSet(t *testing.T) {
 		t.Errorf("database should be unchanged")
 	}
 }
+
+func TestDelete(t *testing.T) {
+	db := &DB{ids: make(map[string]*Taxon)}
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	db.changed = false
+	tax := db.TaxEd("Homo")
+	tax.Delete(false)
+
+	tx := db.TaxEd("Homo sapiens")
+	if tx == nil {
+		t.Errorf("\"Homo sapiens\" should be present")
+	}
+	if tx.Parent() != "Hominidae" {
+		t.Errorf("bad parent %q, want %q", tx.Parent(), "Homonidae")
+	}
+
+	tx = db.TaxEd("Pithecanthropus")
+	if tx == nil {
+		t.Errorf("\"Pithecanthropus\" should be present")
+	}
+	if tx.Parent() != "Hominidae" {
+		t.Errorf("bad parent %q, want %q", tx.Parent(), "Homonidae")
+	}
+
+	tax = db.TaxEd("Pan")
+	tax.Delete(true)
+	if tx := db.TaxEd("Pan paniscus"); tx != nil {
+		t.Errorf("\"Pan paniscus\" is on database")
+	}
+}
