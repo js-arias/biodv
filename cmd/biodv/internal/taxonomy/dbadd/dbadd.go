@@ -35,6 +35,9 @@ Each name is validated against an external database, and only taxons
 found in that DB will be added (with the additional information given
 by the database.
 
+If a taxon name can not be added, it will be printed in the standard
+output.
+
 In the input file, it is assumed that each line contains a taxon name
 (empty lines, or lines starting with the sharp symbol ( # ) or
 semicolon character ( ; ) will be ignored).
@@ -147,11 +150,13 @@ func read(db *taxonomy.DB, ext biodv.Taxonomy, r io.Reader, rk biodv.Rank) error
 		}
 		ls, err := biodv.TaxList(ext.Taxon(name))
 		if err != nil {
+			fmt.Printf("%s\n", name)
 			fmt.Fprintf(os.Stderr, "warning: when searching %s: %v\n", name, err)
 			continue
 		}
 		tx := matchFromParent(db, ls)
 		if tx == nil {
+			fmt.Printf("%s\n", name)
 			if len(ls) == 0 {
 				fmt.Fprintf(os.Stderr, "warning: when searching %s: not in database\n", name)
 				continue
@@ -167,7 +172,9 @@ func read(db *taxonomy.DB, ext biodv.Taxonomy, r io.Reader, rk biodv.Rank) error
 			}
 			continue
 		}
-		addTaxon(db, ext, tx, rk)
+		if tax := addTaxon(db, ext, tx, rk); tax == nil {
+			fmt.Printf("%s\n", name)
+		}
 	}
 	return s.Err()
 }
