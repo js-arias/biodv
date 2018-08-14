@@ -10,7 +10,6 @@ package add
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -26,7 +25,7 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: `tax.add [-p|--parent <name>] [-r|--rank <rank>]
-		[-s|--synonym] [-v|--verbose] [<file>...]`,
+		[-s|--synonym] [<file>...]`,
 	Short: "add taxon names",
 	Long: `
 Command tax.add adds one or more taxons from the indicated files, or the
@@ -66,11 +65,6 @@ Options are:
       If set, the added taxons will be set as synonyms (non correct names)
       of its parent. It requires that a parent will be defined.
 
-    -v
-    --verbose
-      If set, the name of each added taxon will be printed in the standard
-      output.
-
     <file>
       One or more files to be processed by tax.add. If no file is given,
       the taxon names will be read from the standard input.
@@ -86,7 +80,6 @@ func init() {
 var parent string
 var rank string
 var synonym bool
-var verbose bool
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&parent, "parent", "", "")
@@ -95,8 +88,6 @@ func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&rank, "r", "", "")
 	c.Flag.BoolVar(&synonym, "synonym", false, "")
 	c.Flag.BoolVar(&synonym, "s", false, "")
-	c.Flag.BoolVar(&verbose, "verbose", false, "")
-	c.Flag.BoolVar(&verbose, "v", false, "")
 }
 
 func run(c *cmdapp.Command, args []string) error {
@@ -178,18 +169,11 @@ func read(db *taxonomy.DB, r io.Reader, rk biodv.Rank) error {
 					return err
 				}
 				pname = p.Name()
-				if verbose {
-					fmt.Printf("%s\n", p.Name())
-				}
 			}
 		}
 
-		tax, err := db.Add(name, pname, rk, !synonym)
-		if err != nil {
+		if _, err := db.Add(name, pname, rk, !synonym); err != nil {
 			return err
-		}
-		if verbose {
-			fmt.Printf("%s\n", tax.Name())
 		}
 	}
 	return s.Err()
