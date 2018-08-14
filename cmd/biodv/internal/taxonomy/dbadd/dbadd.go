@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -136,7 +135,7 @@ func run(c *cmdapp.Command, args []string) (err error) {
 func read(db *taxonomy.DB, ext biodv.Taxonomy, r io.Reader, rk biodv.Rank) error {
 	s := bufio.NewScanner(r)
 	for s.Scan() {
-		name := strings.Join(strings.Fields(s.Text()), " ")
+		name := biodv.TaxCanon(s.Text())
 		if name == "" {
 			continue
 		}
@@ -172,8 +171,13 @@ func read(db *taxonomy.DB, ext biodv.Taxonomy, r io.Reader, rk biodv.Rank) error
 			}
 			continue
 		}
-		if tax := addTaxon(db, ext, tx, rk); tax == nil {
+		tax := addTaxon(db, ext, tx, rk)
+		if tax == nil {
 			fmt.Printf("%s\n", name)
+			continue
+		}
+		if tax.Name() != name {
+			fmt.Fprintf(os.Stderr, "warning: taxon %q added as %q [%s:%s]\n", name, tax.Name(), extName, tx.ID())
 		}
 	}
 	return s.Err()

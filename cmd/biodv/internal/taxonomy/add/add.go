@@ -143,7 +143,7 @@ func run(c *cmdapp.Command, args []string) error {
 func read(db *taxonomy.DB, r io.Reader, rk biodv.Rank) error {
 	s := bufio.NewScanner(r)
 	for s.Scan() {
-		name := strings.Join(strings.Fields(s.Text()), " ")
+		name := biodv.TaxCanon(s.Text())
 		if name == "" {
 			continue
 		}
