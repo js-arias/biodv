@@ -13,7 +13,7 @@ and file hierarchy
 within the current working path
 (which is defined hera as a “project”).
 Each sub-directory stores the data
-in one or more files using the [stanza format](#stanza).
+in one or more files using the stanza format.
 
 Here is an example of a project sub-directories:
 
@@ -46,7 +46,7 @@ or a developer,
 does not need to know how each file is called,
 or where is stored.
 
-## Stanza format {#stanza}
+## Stanza format
 
 In biodv data is stored using the stanza format.
 The stanza format is an structured UTF-8 text file
