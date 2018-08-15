@@ -4,9 +4,6 @@
 //
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
-// Package taxonomy implements
-// a hierarchical,
-// linnean ranked taxonomy.
 package taxonomy
 
 import (

@@ -46,7 +46,7 @@ The following fields are recognized by biodv taxonomy commands:
 	extern     a list (separated by spaces) of external IDs of the
 	           taxon, it is expected to be in the form
 	           <service>:<key>.
-	reference  a bibliographic referece (or an ID to that
+	reference  a bibliographic reference (or an ID to that
 	           reference).
 	source	   the database (or its ID) of the source of the
 	           taxonomic information.
