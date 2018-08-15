@@ -48,7 +48,7 @@ The stanza format understood by a taxonomy scanner
 should have the following fields,
 that should be accessed by a Taxon method:
 
-	name       cannonical name of the taxon.
+	name       canonical name of the taxon.
 	rank       rank of the taxon.
 	correct    if the taxon is not correct
 	           (a synonym) is set to "false",

@@ -39,7 +39,7 @@ Biodv database organization
 
 In biodv, the database is organized in sub-directories within the
 current working path (which is defined here as a “project”). Each
-sub-directoty stores the data in one or more files using the stanza
+sub-directory stores the data in one or more files using the stanza
 format.
 
 Here is an example of a project sub-directories:
@@ -656,7 +656,7 @@ the file taxonomy.stz. The file is an stanza-encoded file.
 
 The following fields are recognized by biodv taxonomy commands:
 
-	name       cannonical name of the taxon.
+	name       canonical name of the taxon.
 	author     author of the taxon's name.
 	rank       rank of the taxon.
 	correct    if the taxon is not correct (a synonym) is set to

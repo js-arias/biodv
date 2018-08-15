@@ -36,7 +36,7 @@ the file taxonomy.stz. The file is an stanza-encoded file.
 
 The following fields are recognized by biodv taxonomy commands:
 
-	name       cannonical name of the taxon.
+	name       canonical name of the taxon.
 	author     author of the taxon's name.
 	rank       rank of the taxon.
 	correct    if the taxon is not correct (a synonym) is set to
