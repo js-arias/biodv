@@ -5,7 +5,7 @@
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
 // Package list implements the tax.list command,
-// i.e. prints a list of taxons.
+// i.e. print a list of taxons.
 package list
 
 import (
@@ -22,7 +22,7 @@ import (
 var cmd = &cmdapp.Command{
 	UsageLine: `tax.list [--db <database>] [--id <value>] [-m|--machine]
 		[-p|--parents] [-s|--synonym] [-v|--verbose] [<name>]`,
-	Short: "prints a list of taxons",
+	Short: "print a list of taxons",
 	Long: `
 Command tax.list prints a list of the contained taxa of a given taxon
 in a given database.

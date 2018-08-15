@@ -5,7 +5,7 @@
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
 // Package info implements the tax.info command,
-// i.e. prints taxon information.
+// i.e. print taxon information.
 package info
 
 import (
@@ -21,7 +21,7 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: "tax.info [--db <database>] [--id <value>] [<name>]",
-	Short:     "prints taxon information",
+	Short:     "print taxon information",
 	Long: `
 Command tax.info prints the information data available for a taxon name, in
 a given database.
