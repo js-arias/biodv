@@ -87,6 +87,9 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 
 	tax, err := getTaxon(db, nm)
+	if err != nil {
+		return errors.Wrap(err, c.Name())
+	}
 
 	if key == "" {
 		ls := []string{"name", "id", "rank", "correct", "parent"}
