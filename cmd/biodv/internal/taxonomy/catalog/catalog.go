@@ -101,39 +101,42 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	var tax biodv.Taxon
-	if id != "" {
-		tax, err = db.TaxID(id)
-		if err != nil {
-			return errors.Wrap(err, c.Name())
-		}
-	} else {
-		ls, err := biodv.TaxList(db.Taxon(nm))
-		if err != nil {
-			return errors.Wrap(err, c.Name())
-		}
-		if len(ls) == 0 {
-			return nil
-		}
-		if len(ls) > 1 {
-			fmt.Fprintf(os.Stderr, "ambiguous name:\n")
-			for _, tx := range ls {
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
-				if tx.IsCorrect() {
-					fmt.Fprintf(os.Stderr, "correct name\n")
-				} else {
-					fmt.Fprintf(os.Stderr, "synonym\n")
-				}
-			}
-			return nil
-		}
-		tax = ls[0]
+	tax, err := getTaxon(db, nm)
+	if err != nil {
+		return errors.Wrap(err, c.Name())
 	}
 
 	if err := navigate(db, tax, biodv.Unranked); err != nil {
 		return errors.Wrap(err, c.Name())
 	}
 	return nil
+}
+
+// GetTaxon returns a taxon from the options.
+func getTaxon(db biodv.Taxonomy, nm string) (biodv.Taxon, error) {
+	if id != "" {
+		return db.TaxID(id)
+	}
+	ls, err := biodv.TaxList(db.Taxon(nm))
+	if err != nil {
+		return nil, err
+	}
+	if len(ls) == 0 {
+		return nil, nil
+	}
+	if len(ls) > 1 {
+		fmt.Fprintf(os.Stderr, "ambiguous name:\n")
+		for _, tx := range ls {
+			fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
+			if tx.IsCorrect() {
+				fmt.Fprintf(os.Stderr, "correct name\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "synonym\n")
+			}
+		}
+		return nil, nil
+	}
+	return ls[0], nil
 }
 
 // Navigate follows the taxonomy.

@@ -104,7 +104,17 @@ func run(c *cmdapp.Command, args []string) (err error) {
 		addTaxons(db, ext, tax)
 	}
 
-	// make all movements
+	if err = makeMoves(db, ext); err != nil {
+		return err
+	}
+	if err = makeRankUpdates(db); err != nil {
+		return err
+	}
+	return err
+}
+
+// MakeMoves make all movements
+func makeMoves(db *taxonomy.DB, ext biodv.Taxonomy) error {
 	for i := 0; i < maxIts; i++ {
 		if len(toMove) == 0 {
 			break
@@ -121,11 +131,16 @@ func run(c *cmdapp.Command, args []string) (err error) {
 		}
 	}
 	if len(toMove) > 0 {
-		err = errors.Errorf("%d taxons not moved", len(toMove))
-		return
+		for id := range toMove {
+			fmt.Fprintf(os.Stderr, "unomoved: %s\n", id)
+		}
+		return errors.Errorf("%d taxons not moved", len(toMove))
 	}
+	return nil
+}
 
-	// update ranks
+// MakeRankUpdates update the ranks of all taxons.
+func makeRankUpdates(db *taxonomy.DB) error {
 	for i := 0; i < maxIts; i++ {
 		if len(reRank) == 0 {
 			break
@@ -138,10 +153,16 @@ func run(c *cmdapp.Command, args []string) (err error) {
 			}
 		}
 		for id := range del {
-			delete(toMove, id)
+			delete(reRank, id)
 		}
 	}
-	return err
+	if len(reRank) > 0 {
+		for id := range reRank {
+			fmt.Fprintf(os.Stderr, "left unranked: %s\n", id)
+		}
+		return errors.Errorf("%d taxons left unranked", len(reRank))
+	}
+	return nil
 }
 
 type externTaxon struct {
