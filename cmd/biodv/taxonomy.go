@@ -34,7 +34,7 @@ var taxHelp = &cmdapp.Command{
 In biodv the taxonomy database is stored in taxonomy sub-directory in
 the file taxonomy.stz. The file is an stanza-encoded file.
 
-The following files are recognized by biodv taxonomy commands:
+The following fields are recognized by biodv taxonomy commands:
 
 	name       cannonical name of the taxon.
 	author     author of the taxon's name.
