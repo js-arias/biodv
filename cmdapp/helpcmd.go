@@ -10,6 +10,10 @@ package cmdapp
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Help is the help command.
@@ -30,15 +34,48 @@ func runHelp(c *Command, args []string) error {
 		return nil
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("%s: too many arguments", c.Name())
+		return errors.Errorf("%s: too many arguments", c.Name())
 	}
 
 	arg := args[0]
 
+	// 'help documentation' generates doc.go
+	if arg == "documentation" {
+		f, err := os.Create("doc.go")
+		if err != nil {
+			return errors.Wrap(err, c.Name())
+		}
+		fmt.Fprintf(f, "%s\n", strings.TrimSpace(goHead))
+		printUsage(f)
+		mutex.Lock()
+		defer mutex.Unlock()
+		var cmds []string
+		for cn := range commands {
+			cmds = append(cmds, cn)
+		}
+		sort.Strings(cmds)
+
+		for _, c := range cmds {
+			commands[c].documentation(f)
+		}
+		fmt.Fprintf(f, "\n%s", strings.TrimSpace(goFoot))
+		if err := f.Close(); err != nil {
+			return errors.Wrap(err, c.Name())
+		}
+		return nil
+	}
+
 	cn := getCmd(arg)
 	if cn == nil {
-		return fmt.Errorf("%s: unknown help topic '%s'. Run '%s help'.\n", c.Name(), arg, Name)
+		return errors.Errorf("%s: unknown help topic '%s'. Run '%s help'.\n", c.Name(), arg, Name)
 	}
 	cn.documentation(os.Stdout)
 	return nil
 }
+
+var goHead = `// Authomatically generated doc.go file for use with godoc.
+
+/*`
+
+var goFoot = `*/
+package main`
