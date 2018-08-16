@@ -264,7 +264,7 @@ func printSpecies(tax biodv.Taxon, syns []biodv.Taxon) {
 func getIDsString(tax biodv.Taxon) string {
 	ids := dbName + ":" + tax.ID()
 	if ext := tax.Value(biodv.TaxExtern); ext != "" {
-		ids += strings.Join(strings.Fields(ext), " ")
+		ids += " " + strings.Join(strings.Fields(ext), " ")
 	}
 	return ids
 }
