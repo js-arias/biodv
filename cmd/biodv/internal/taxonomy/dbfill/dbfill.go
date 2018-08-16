@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -254,6 +256,12 @@ func fillList(db *taxonomy.DB, tax *taxonomy.Taxon, ls []biodv.Taxon) {
 		if tx, _ := db.TaxID(extName + ":" + d.ID()); tx != nil {
 			continue
 		}
+		// skip taxons with invalid names,
+		// such as "? spelaea"
+		if nm, _ := utf8.DecodeRuneInString(d.Name()); !unicode.IsLetter(nm) {
+			continue
+		}
+
 		addExtern(db, d, tax.ID())
 	}
 }
