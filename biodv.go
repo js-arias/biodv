@@ -12,8 +12,10 @@ package biodv
 import (
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -341,6 +343,35 @@ func TaxCanon(name string) string {
 	name = strings.ToLower(name)
 	r, n := utf8.DecodeRuneInString(name)
 	return string(unicode.ToTitle(r)) + name[n:]
+}
+
+// TaxYear returns the year of the taxon description
+// as given from the author field.
+// If no year is defined,
+// it will return 0.
+func TaxYear(tx Taxon) int {
+	if tx == nil {
+		return 0
+	}
+	return getYearFromAuthor(tx.Value(TaxAuthor))
+}
+
+func getYearFromAuthor(author string) int {
+	if author == "" {
+		return 0
+	}
+	author = strings.TrimRight(author, ")")
+	if len(author) < 4 {
+		return 0
+	}
+	year, err := strconv.Atoi(author[len(author)-4:])
+	if err != nil {
+		return 0
+	}
+	if year < 1750 || year > time.Now().Year() {
+		return 0
+	}
+	return year
 }
 
 // Rank is a linnean rank.

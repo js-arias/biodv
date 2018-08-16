@@ -233,3 +233,107 @@ func TestDelete(t *testing.T) {
 		t.Errorf("\"Pan paniscus\" is on database")
 	}
 }
+
+var orderBlob = `
+name:	Mustela
+rank:	genus
+correct: true
+author:	Linneaeus, 1758
+%%
+name:	Cabreragale
+rank:	genus
+parent:	Mustela
+correct: false
+author: Baryshnikov & Abramov, 1997
+%%
+name:	Cyanomyonax
+rank:	genus
+parent:	Mustela
+correct: false
+author: Trouessart, 1885
+%%
+name:	Kolonocus
+rank:	genus
+parent:	Mustela
+correct: false
+author:	Satunin, 1914
+%%
+name:	Mustela nigripes
+rank:	species
+parent: Mustela
+correct: true
+author: (Audubon & Bachman, 1851)
+%%
+name:	Mustela frenata
+rank:	species
+parent: Mustela
+correct: true
+author: Lichtenstein, 1831
+%%
+name:	Mustela nivalis
+rank:	species
+parent: Mustela
+correct: true
+author: Linnaeus, 1766
+%%
+name:	Mustela nivalis corsicana
+rank:	unranked
+parent:	Mustela nivalis
+correct: false
+%%
+name:	Mustela rixosa
+rank:	species
+parent:	Mustela nivalis
+correct: false
+author: (Bangs, 1896)
+%%
+name:	Mustela vulgaris
+rank:	species
+parent:	Mustela nivalis
+correct: false
+author: Erxleben, 1777
+%%
+`
+
+func TestChildrenOrder(t *testing.T) {
+	db := &DB{ids: make(map[string]*Taxon)}
+	sc := NewScanner(strings.NewReader(orderBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// sorted childrens
+	ch := []string{
+		// correct-valid names first,
+		// sorted by name
+		"Mustela frenata",
+		"Mustela nigripes",
+		"Mustela nivalis",
+
+		// synonyms sorted by date
+		"Cyanomyonax", // 1885
+		"Kolonocus",   // 1914
+		"Cabreragale", // 1997
+	}
+
+	ls := db.TaxList("Mustela")
+	for i, tax := range ls {
+		if tax.Name() != ch[i] {
+			t.Errorf("taxon %q, want %q", tax.Name(), ch[i])
+		}
+	}
+
+	// sorted synonyms
+	sn := []string{
+		"Mustela vulgaris",          // 1777
+		"Mustela rixosa",            // 1896
+		"Mustela nivalis corsicana", // no-year
+	}
+
+	ls = db.TaxList("Mustela nivalis")
+	for i, tax := range ls {
+		if tax.Name() != sn[i] {
+			t.Errorf("taxon %q, want %q", tax.Name(), sn[i])
+		}
+	}
+}

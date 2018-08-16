@@ -299,6 +299,18 @@ func (tax *Taxon) Set(key, value string) error {
 		tax.data[key] = strings.Join(ext, " ")
 		tax.db.changed = true
 		return nil
+	case biodv.TaxAuthor:
+		v := tax.data[key]
+		if v == value {
+			return nil
+		}
+		tax.data[key] = value
+		if tax.parent == nil {
+			sortTaxons(tax.db.root)
+		} else {
+			sortTaxons(tax.parent.children)
+		}
+		return nil
 	default:
 		v := tax.data[key]
 		if v == value {
@@ -372,8 +384,10 @@ func (tax *Taxon) Move(parent string, status bool) error {
 	tax.data[parentKey] = parent
 	if p != nil {
 		p.children = append(p.children, tax)
+		sortTaxons(p.children)
 	} else {
 		tax.db.root = append(tax.db.root, tax)
+		sortTaxons(tax.db.root)
 	}
 	tax.moveChildren()
 	tax.db.changed = true
@@ -398,6 +412,7 @@ func (tax *Taxon) moveChildren() {
 		c.parent = tax.parent
 	}
 	tax.parent.children = append(tax.parent.children, tax.children...)
+	sortTaxons(tax.parent.children)
 	tax.children = nil
 }
 
@@ -538,10 +553,55 @@ func (tax *Taxon) remove() {
 			c.parent = tax.parent
 		}
 		tax.parent.children = append(tax.parent.children, tax.children...)
+		sortTaxons(tax.parent.children)
 	}
 	tax.children = nil
 	tax.parent = nil
 	tax.db.deleteIDs(tax)
+}
+
+// SortTaxons sorts taxons
+// first as correct-valid and synonyms.
+// Valid taxons are sorted by name.
+// Synonyms are sorted by its taxon year
+// as given in the author field.
+// If no year is given for the taxon,
+// synonym is move down,
+// and then sorted by its name.
+func sortTaxons(ls []*Taxon) {
+	sort.Sort(sortTax(ls))
+}
+
+type sortTax []*Taxon
+
+func (s sortTax) Len() int      { return len(s) }
+func (s sortTax) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s sortTax) Less(i, j int) bool {
+	if s[i].IsCorrect() {
+		if !s[j].IsCorrect() {
+			return true
+		}
+		return s[i].Name() < s[j].Name()
+	}
+
+	// correct names are always "less" than synonyms
+	if s[j].IsCorrect() {
+		return false
+	}
+
+	yi, yj := biodv.TaxYear(s[i]), biodv.TaxYear(s[j])
+	if yi == 0 {
+		if yj == 0 {
+			return s[i].Name() < s[j].Name()
+		}
+		return false
+	}
+	if yj == 0 {
+		return true
+	}
+
+	return yi < yj
 }
 
 func (db *DB) deleteIDs(tax *Taxon) {
@@ -641,8 +701,10 @@ func (db *DB) Add(name, parent string, rank biodv.Rank, correct bool) (*Taxon, e
 	tax.parent = p
 	if p == nil {
 		db.root = append(db.root, tax)
+		sortTaxons(db.root)
 	} else {
 		p.children = append(p.children, tax)
+		sortTaxons(p.children)
 	}
 	db.ids[name] = tax
 	db.changed = true

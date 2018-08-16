@@ -142,3 +142,25 @@ func TestBiodvTaxCanon(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthorYear(t *testing.T) {
+	testData := []struct {
+		text string
+		year int
+	}{
+		{"", 0},
+		{"L.", 0},
+		{"Spreng.", 0},
+		{"Hodgson, 1842", 1842},
+		{"(Domaniewski, 1926)", 1926},
+		{"invalid-year, 1001", 0},
+		{"far-future, 9899", 0},
+		{"Trouessart, 1885", 1885},
+	}
+
+	for _, d := range testData {
+		if y := getYearFromAuthor(d.text); y != d.year {
+			t.Errorf("Year %d, want %d", y, d.year)
+		}
+	}
+}
