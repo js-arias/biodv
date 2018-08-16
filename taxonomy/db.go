@@ -554,7 +554,7 @@ func (db *DB) deleteIDs(tax *Taxon) {
 }
 
 func init() {
-	biodv.RegisterTax("biodv", open)
+	biodv.RegisterTax("biodv", biodv.TaxDriver{open, nil})
 }
 
 // Open opens a DB

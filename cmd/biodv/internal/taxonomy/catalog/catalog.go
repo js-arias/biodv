@@ -186,7 +186,7 @@ func printSupra(tax biodv.Taxon, syns []biodv.Taxon) {
 	switch format {
 	case "html":
 		nm = html.EscapeString(nm)
-		ids := html.EscapeString(getIDsString(tax))
+		ids := getIDsString(tax)
 		rk := tax.Rank()
 
 		if rk != biodv.Unranked {
@@ -200,7 +200,7 @@ func printSupra(tax biodv.Taxon, syns []biodv.Taxon) {
 		}
 		fmt.Printf(" <font size=-1>[%s]</font>\n", ids)
 		for _, s := range syns {
-			sid := html.EscapeString(getIDsString(s))
+			sid := getIDsString(s)
 			if s.Rank() == biodv.Genus {
 				fmt.Printf("\t<font color=\"gray\"><i>%s</i> %s <font size=-1>[%s]</font></font>\n", html.EscapeString(s.Name()), html.EscapeString(s.Value(biodv.TaxAuthor)), sid)
 				continue
@@ -227,7 +227,7 @@ func printSpecies(tax biodv.Taxon, syns []biodv.Taxon) {
 	switch format {
 	case "html":
 		nm := html.EscapeString(tax.Name())
-		ids := html.EscapeString(getIDsString(tax))
+		ids := getIDsString(tax)
 		if tax.Rank() != biodv.Species {
 			fmt.Printf("\t\t<i>%s</i> %s <font size=-1>[%s]</font>\n", nm, html.EscapeString(tax.Value(biodv.TaxAuthor)), ids)
 		} else {
@@ -235,7 +235,7 @@ func printSpecies(tax biodv.Taxon, syns []biodv.Taxon) {
 			fmt.Printf(" <font size=-1>[%s]</font>\n", ids)
 		}
 		for _, s := range syns {
-			sid := html.EscapeString(getIDsString(s))
+			sid := getIDsString(s)
 			if tax.Rank() != biodv.Species {
 				fmt.Printf("\t\t\t<font color=\"gray\"><i>%s</i> %s <font size=-1>[%s]</font></font>\n", html.EscapeString(s.Name()), html.EscapeString(s.Value(biodv.TaxAuthor)), sid)
 				continue
@@ -262,9 +262,36 @@ func printSpecies(tax biodv.Taxon, syns []biodv.Taxon) {
 }
 
 func getIDsString(tax biodv.Taxon) string {
-	ids := dbName + ":" + tax.ID()
-	if ext := tax.Value(biodv.TaxExtern); ext != "" {
-		ids += " " + strings.Join(strings.Fields(ext), " ")
+	ext := tax.Value(biodv.TaxExtern)
+	ls := append([]string{dbName + ":" + tax.ID()}, strings.Fields(ext)...)
+
+	switch format {
+	case "html":
+		var b strings.Builder
+		for i, id := range ls {
+			u := getGetTaxonURL(id)
+			if i == 0 {
+				b.WriteString(u)
+				continue
+			}
+			b.WriteString(" " + u)
+		}
+		return b.String()
+	case "txt":
+		return strings.Join(ls, " ")
 	}
-	return ids
+	return ""
+}
+
+func getGetTaxonURL(id string) string {
+	i := strings.Index(id, ":")
+	if i <= 0 {
+		return html.EscapeString(id)
+	}
+	srv, eid := id[:i], id[i+1:]
+	u := biodv.TaxURL(srv, eid)
+	if u == "" {
+		return html.EscapeString(id)
+	}
+	return fmt.Sprintf("<a href=%s>%s</a>", u, html.EscapeString(id))
 }

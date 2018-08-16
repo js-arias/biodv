@@ -38,13 +38,22 @@ type Taxonomy interface {
 	Children(id string) *TaxScan
 }
 
-// DriverTax is a function for
-// open a taxonomy database.
-type DriverTax func(string) (Taxonomy, error)
+// TaxDriver contains components
+// of a Taxonomy driver.
+type TaxDriver struct {
+	// Open is a function to open
+	// a taxonomy.
+	Open func(string) (Taxonomy, error)
+
+	// URL is a function to return
+	// an URL of a given taxon ID.
+	// This value can be nil.
+	URL func(id string) string
+}
 
 var (
 	taxDriversMu sync.RWMutex
-	taxDrivers   = make(map[string]DriverTax)
+	taxDrivers   = make(map[string]TaxDriver)
 )
 
 // RegisterTax makes a taxonomy driver
@@ -52,10 +61,10 @@ var (
 // If Register is called twice with the same name
 // or if driver is nil,
 // it panics.
-func RegisterTax(name string, driver DriverTax) {
+func RegisterTax(name string, driver TaxDriver) {
 	taxDriversMu.Lock()
 	defer taxDriversMu.Unlock()
-	if driver == nil {
+	if driver.Open == nil {
 		panic("biodv: Taxonomy drivers is nil")
 	}
 	if _, dup := taxDrivers[name]; dup {
@@ -85,12 +94,30 @@ func OpenTax(driver, param string) (Taxonomy, error) {
 		return nil, errors.New("biodv: empty taxonomy driver")
 	}
 	taxDriversMu.RLock()
-	fn, ok := taxDrivers[driver]
+	dr, ok := taxDrivers[driver]
 	taxDriversMu.RUnlock()
 	if !ok {
 		return nil, errors.Errorf("biodv: unknown taxonomy driver %q", driver)
 	}
-	return fn(param)
+	return dr.Open(param)
+}
+
+// TaxURL returns the URL of a given taxon ID
+// in a given database.
+func TaxURL(driver, id string) string {
+	if driver == "" {
+		return ""
+	}
+	taxDriversMu.RLock()
+	dr, ok := taxDrivers[driver]
+	taxDriversMu.RUnlock()
+	if !ok {
+		return ""
+	}
+	if dr.URL == nil {
+		return ""
+	}
+	return dr.URL(id)
 }
 
 // ParseDriverString separates a driver

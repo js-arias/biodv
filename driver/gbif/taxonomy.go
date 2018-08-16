@@ -19,7 +19,16 @@ import (
 )
 
 func init() {
-	biodv.RegisterTax("gbif", OpenTax)
+	biodv.RegisterTax("gbif", biodv.TaxDriver{OpenTax, TaxURL})
+}
+
+// TaxURL returns the url of a GBIF taxon.
+func TaxURL(id string) string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ""
+	}
+	return "https://www.gbif.org/species/" + id
 }
 
 // NoNub0 is a parameter used to open a taxonomy
