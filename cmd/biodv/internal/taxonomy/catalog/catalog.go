@@ -33,9 +33,8 @@ Options are:
     --db <database>
       If set, the indicated database will be used to extract the
       taxonomic information.
-      Available databases are:
-        biodv	default database (on current directory)
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
+      The default biodv database on the current directory.
 
     -id <value>
     --id <value>

@@ -8,6 +8,7 @@ Usage:
     biodv [help] <command> [<args>...]
 
 The commands are:
+    db.drivers       list the database drivers
     help             display help information about biodv
     tax.add          add taxon names
     tax.catalog      print a taxonomic catalog
@@ -69,6 +70,25 @@ called, or where it can be found.
 Each data guide include more details on how each subdirectory is
 organized, and the particular constrains of the stored data in that
 subdirectories.
+
+List the database drivers
+
+Usage:
+
+	biodv db.drivers [-d|--database <database>]
+
+Command db.drivers prints a list of available drivers, sorted by the
+kind of the database used. If the -d or --atabase option is given, only
+the drivers for that database will be printed.
+
+Options are:
+
+    -d <database>
+    --database <database>
+      If set, only the drivers of the given database kind will be
+      printed.
+      Valid database kinds are:
+        taxonomy  taxonomic names databases
 
 Display help information about biodv
 
@@ -205,9 +225,8 @@ Options are:
     --db <database>
       If set, the indicated database will be used to extract the
       taxonomic information.
-      Available databases are:
-        biodv	default database (on current directory)
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
+      The default biodv database on the current directory.
 
     -id <value>
     --id <value>
@@ -254,8 +273,7 @@ Options are:
     -e <database>
     --extern <database>
       A required parameter. It will set the external database.
-      Available databases are:
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
 
     -u <rank>
     --uprank <rank>
@@ -287,8 +305,7 @@ Options are:
     -e <database>
     --extern <database>
       A required parameter. It will set the external database.
-      Available databases are:
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
 
     -u <rank>
     --uprank <rank>
@@ -325,8 +342,7 @@ Options are:
     -e <database>
     --extern <database>
       A required parameter. It will set the external database.
-      Available databases are:
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
 
     <name>
       If set, only the indicated taxon, and its descendants will
@@ -424,9 +440,8 @@ Options are:
     --db <database>
       If set, the indicated database will be used to extract the taxon
       information.
-      Available databases are:
-        biodv	default database (on current directory)
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
+      The default biodv database on the current directory.
 
     -id <value>
     --id <value>
@@ -463,9 +478,8 @@ Options are:
     --db <database>
       If set, the indicated database will be used to produce the taxon
       list.
-      Available databases are:
-        biodv	default database (on current directory)
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
+      The default biodv database on the current directory.
 
     -id <value>
     --id <value>
@@ -633,9 +647,8 @@ Options are:
     --db <database>
       If set, the indicated database will be used to search the
       indicated taxon.
-      Available databases are:
-        biodv	default database (on current directory)
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
+      The default biodv database on the current directory.
 
     -id <value>
     --id <value>

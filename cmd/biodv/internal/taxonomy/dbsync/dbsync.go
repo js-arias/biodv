@@ -36,8 +36,7 @@ Options are:
     -e <database>
     --extern <database>
       A required parameter. It will set the external database.
-      Available databases are:
-        gbif	GBIF webservice (requires internet connection)
+      To see the available databases use the command ‘db.drivers’.
 
     <name>
       If set, only the indicated taxon, and its descendants will
