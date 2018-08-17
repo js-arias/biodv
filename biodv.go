@@ -51,6 +51,10 @@ type TaxDriver struct {
 	// an URL of a given taxon ID.
 	// This value can be nil.
 	URL func(id string) string
+
+	// About is a function that return
+	// a short description of the driver.
+	About func() string
 }
 
 var (
@@ -120,6 +124,24 @@ func TaxURL(driver, id string) string {
 		return ""
 	}
 	return dr.URL(id)
+}
+
+// TaxAbout returns the short message
+// describing the driver.
+func TaxAbout(driver string) string {
+	if driver == "" {
+		return ""
+	}
+	taxDriversMu.RLock()
+	dr, ok := taxDrivers[driver]
+	taxDriversMu.RUnlock()
+	if !ok {
+		return ""
+	}
+	if dr.About == nil {
+		return ""
+	}
+	return dr.About()
 }
 
 // ParseDriverString separates a driver

@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	biodv.RegisterTax("gbif", biodv.TaxDriver{OpenTax, TaxURL})
+	biodv.RegisterTax("gbif", biodv.TaxDriver{OpenTax, TaxURL, aboutGBIF})
 }
 
 // TaxURL returns the url of a GBIF taxon.
@@ -55,6 +55,11 @@ func OpenTax(param string) (biodv.Taxonomy, error) {
 }
 
 var useNub0 = true
+
+// AboutGBIF returns a simple statement of the purpose of the driver.
+func aboutGBIF() string {
+	return "a driver for the GBIF taxonomy DB"
+}
 
 // SpAnswer is the answer for the species request.
 type spAnswer struct {

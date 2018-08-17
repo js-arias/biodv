@@ -617,7 +617,12 @@ func (db *DB) deleteIDs(tax *Taxon) {
 }
 
 func init() {
-	biodv.RegisterTax("biodv", biodv.TaxDriver{open, nil})
+	biodv.RegisterTax("biodv", biodv.TaxDriver{open, nil, aboutBiodv})
+}
+
+// AboutBiodv returns a simple stated of the purpose of the driver.
+func aboutBiodv() string {
+	return "the default taxonomy driver"
 }
 
 // Open opens a DB

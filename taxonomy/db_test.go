@@ -393,7 +393,7 @@ func TestChildrenOrder(t *testing.T) {
 	sn = []string{
 		"Canis latrans latrans",  // 1823
 		"Canis latrans ochropus", // 1829
-		"Canis ochropus",         //1829
+		"Canis ochropus",         // 1829
 		"Canis latrans cagottis", // 1839
 		"Lyciscus cagottis",      // 1839
 		"Canis frustror",         // 1851
