@@ -600,7 +600,10 @@ func (s sortTax) Less(i, j int) bool {
 	if yj == 0 {
 		return true
 	}
-
+	
+	if yi == yj {
+		return s[i].Name() < s[j].Name()
+	}
 	return yi < yj
 }
 
