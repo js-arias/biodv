@@ -293,6 +293,59 @@ parent:	Mustela nivalis
 correct: false
 author: Erxleben, 1777
 %%
+name:   Canis
+rank:   genus
+correct: true
+author: Linnaeus, 1758
+%%
+name:   Canis latrans
+parent: Canis
+rank:   species
+correct: true
+author: Say, 1823
+%%
+name:   Canis latrans latrans
+parent: Canis latrans
+rank:   unranked
+correct: false
+author: Say, 1823
+%%
+name:   Canis ochropus
+parent: Canis latrans
+rank:   species
+correct: false
+author: Eschscholtz, 1829
+%%
+name:   Canis latrans ochropus
+parent: Canis latrans
+rank:   unranked
+correct: false
+author: Eschscholtz, 1829
+%%
+name:   Lyciscus cagottis
+parent: Canis latrans
+rank:   species
+correct: false
+author: Hamilton-Smith, 1839
+%%
+name:   Canis latrans cagottis
+parent: Canis latrans
+rank:   unranked
+correct: false
+author: C.E.H.Smith, 1839
+%%
+name:   Canis latrans frustror
+parent: Canis latrans
+rank:   unranked
+correct: false
+author: Woodhouse, 1851
+%%
+name:   Canis frustror
+parent: Canis latrans
+rank:   species
+correct: false
+author: Woodhouse, 1851
+%%
 `
 
 func TestChildrenOrder(t *testing.T) {
@@ -331,6 +384,22 @@ func TestChildrenOrder(t *testing.T) {
 	}
 
 	ls = db.TaxList("Mustela nivalis")
+	for i, tax := range ls {
+		if tax.Name() != sn[i] {
+			t.Errorf("taxon %q, want %q", tax.Name(), sn[i])
+		}
+	}
+
+	sn = []string{
+		"Canis latrans latrans",  // 1823
+		"Canis latrans ochropus", // 1829
+		"Canis ochropus",         //1829
+		"Canis latrans cagottis", // 1839
+		"Lyciscus cagottis",      // 1839
+		"Canis frustror",         // 1851
+		"Canis latrans frustror", // 1851
+	}
+	ls = db.TaxList("Canis latrans")
 	for i, tax := range ls {
 		if tax.Name() != sn[i] {
 			t.Errorf("taxon %q, want %q", tax.Name(), sn[i])
