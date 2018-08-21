@@ -58,7 +58,7 @@ func TestTaxScan(t *testing.T) {
 		t.Errorf("taxscan unexpected error: %v", err)
 	}
 	if len(mockTaxList) != c {
-		t.Errorf("scanned taxons %d, want %d", len(mockTaxList), c)
+		t.Errorf("scanned taxons %d, want %d", c, len(mockTaxList))
 	}
 
 	// Closing TaxScan before finish
