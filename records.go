@@ -8,11 +8,117 @@ package biodv
 
 import (
 	"io"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 )
+
+// RecDriver contains components
+// of a RecDB driver.
+type RecDriver struct {
+	// Open is a function to open
+	// a RecDB.
+	Open func(string) (RecDB, error)
+
+	// URL is a function to return
+	// an URL of a given record ID.
+	// This value can be nil.
+	URL func(id string) string
+
+	// About is a function that return
+	// a short description of the driver.
+	About func() string
+}
+
+var (
+	recDriversMu sync.RWMutex
+	recDrivers   = make(map[string]RecDriver)
+)
+
+// RegisterRec makes a recDB driver
+// availablre by the provided name.
+// If Register is called twice with the same name
+// or if driver is nil,
+// it panics.
+func RegisterRec(name string, driver RecDriver) {
+	recDriversMu.Lock()
+	defer recDriversMu.Unlock()
+	if driver.Open == nil {
+		panic("biodv: RecDB driver Open is nil")
+	}
+	if _, dup := recDrivers[name]; dup {
+		panic("biodv: RegisterRec called twice for driver " + name)
+	}
+	recDrivers[name] = driver
+}
+
+// RecDrivers returns a sorted list
+// of names of the registered drivers.
+func RecDrivers() []string {
+	recDriversMu.RLock()
+	defer recDriversMu.RUnlock()
+	var ls []string
+	for name := range recDrivers {
+		ls = append(ls, name)
+	}
+	sort.Strings(ls)
+	return ls
+}
+
+// OpenRec opens a RecDB database
+// by its driver,
+// and a driver specific parameter string.
+func OpenRec(driver, param string) (RecDB, error) {
+	if driver == "" {
+		return nil, errors.New("biodv: empty recDB driver")
+	}
+	recDriversMu.RLock()
+	dr, ok := recDrivers[driver]
+	recDriversMu.RUnlock()
+	if !ok {
+		return nil, errors.Errorf("biodv: unknonw recDB driver %q", driver)
+	}
+	return dr.Open(param)
+}
+
+// RecURL returns the URL of a given Record ID
+// in a given database.
+func RecURL(driver, id string) string {
+	if driver == "" {
+		return ""
+	}
+	recDriversMu.RLock()
+	dr, ok := recDrivers[driver]
+	recDriversMu.RUnlock()
+	if !ok {
+		return ""
+	}
+	if dr.URL == nil {
+		return ""
+	}
+	return dr.URL(id)
+}
+
+// RecAbout returns the short message
+// describing the driver.
+func RecAbout(driver string) string {
+	if driver == "" {
+		return ""
+	}
+	recDriversMu.RLock()
+	dr, ok := recDrivers[driver]
+	recDriversMu.RUnlock()
+	if !ok {
+		return ""
+	}
+	if dr.About == nil {
+		return ""
+	}
+	return dr.About()
+}
 
 // A RecScan is a record scanner
 // to stream the results of a query

@@ -83,6 +83,3 @@ func (rc *reqChanType) reqs() {
 		time.Sleep(Wait)
 	}
 }
-
-// Database is handler of the GBIF database.
-type database struct{}

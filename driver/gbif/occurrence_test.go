@@ -9,11 +9,7 @@ package gbif
 import (
 	"bytes"
 	"testing"
-
-	"github.com/js-arias/biodv"
 )
-
-var _ biodv.Record = &occurrence{}
 
 func TestDecodeRecordList(t *testing.T) {
 	b := bytes.NewBufferString(larusBlob)

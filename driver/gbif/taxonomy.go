@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	biodv.RegisterTax("gbif", biodv.TaxDriver{OpenTax, TaxURL, aboutGBIF})
+	biodv.RegisterTax("gbif", biodv.TaxDriver{OpenTax, TaxURL, aboutTaxGBIF})
 }
 
 // TaxURL returns the url of a GBIF taxon.
@@ -31,33 +31,37 @@ func TaxURL(id string) string {
 	return "https://www.gbif.org/species/" + id
 }
 
-// NoNub0 is a parameter used to open a taxonomy
+// TaxNoNub0 is a parameter used to open a taxonomy
 // that skip taxons with nubKey = 0,
 // by default,
 // when nub is 0,
 // it will use the key field instead of the nubKey.
-const NoNub0 = "no-nub-0"
+const TaxNoNub0 = "no-nub-0"
 
 // OpenTax returns the GBIF
 // taxonomy handler,
 // that implements the biodv.Taxonomy interface.
 //
-// If the param is equal to Nub0
-// it will accept taxons with a nubKey = 0.
+// If the param is equal to TaxNoNub0
+// it will skip taxons with a nubKey = 0.
 func OpenTax(param string) (biodv.Taxonomy, error) {
 	if reqChan == nil {
 		initReqs()
 	}
-	if param == NoNub0 {
-		useNub0 = false
+	db := taxDB{useNub0: true}
+	if param == TaxNoNub0 {
+		db.useNub0 = false
 	}
-	return database{}, nil
+	return db, nil
 }
 
-var useNub0 = true
+// TaxDB is the handler of GBIF taxonomy DB.
+type taxDB struct {
+	useNub0 bool
+}
 
-// AboutGBIF returns a simple statement of the purpose of the driver.
-func aboutGBIF() string {
+// AboutTaxGBIF returns a simple statement of the purpose of the driver.
+func aboutTaxGBIF() string {
 	return "a driver for the GBIF taxonomy DB"
 }
 
@@ -162,7 +166,7 @@ func (sp *species) noMatch() bool {
 	return false
 }
 
-func (db database) Taxon(name string) *biodv.TaxScan {
+func (db taxDB) Taxon(name string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(300)
 	name = strings.Join(strings.Fields(name), " ")
 	if name == "" {
@@ -177,7 +181,7 @@ func (db database) Taxon(name string) *biodv.TaxScan {
 	return sc
 }
 
-func (db database) Children(id string) *biodv.TaxScan {
+func (db taxDB) Children(id string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(300)
 	id = strings.TrimSpace(id)
 	if id == "" || id == "0" {
@@ -191,7 +195,7 @@ func (db database) Children(id string) *biodv.TaxScan {
 	return sc
 }
 
-func (db database) Synonyms(id string) *biodv.TaxScan {
+func (db taxDB) Synonyms(id string) *biodv.TaxScan {
 	sc := biodv.NewTaxScan(300)
 	id = strings.TrimSpace(id)
 	if id == "" || id == "0" {
@@ -207,7 +211,7 @@ func (db database) Synonyms(id string) *biodv.TaxScan {
 
 // TaxonList returns an specific list of taxons
 // with a given set of parameters.
-func (db database) taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
+func (db taxDB) taxonList(sc *biodv.TaxScan, reqstr string, param url.Values) {
 	var err error
 	// nubs store all the nubs found
 	nubs := make(map[int64]bool)
@@ -237,7 +241,7 @@ func (db database) taxonList(sc *biodv.TaxScan, reqstr string, param url.Values)
 						continue
 					}
 					nub := sp.NubKey
-					if nub == 0 && useNub0 {
+					if nub == 0 && db.useNub0 {
 						nub = sp.Key
 					}
 					if sp.Key != nub {
@@ -296,7 +300,7 @@ func decodeTaxonList(b *bytes.Buffer) (*spAnswer, error) {
 	return resp, err
 }
 
-func (db database) rootTaxons(sc *biodv.TaxScan) {
+func (db taxDB) rootTaxons(sc *biodv.TaxScan) {
 	var kingdoms = []string{
 		"1", // Animalia
 		"2", // Archaea
@@ -318,7 +322,7 @@ func (db database) rootTaxons(sc *biodv.TaxScan) {
 	sc.Add(nil, nil)
 }
 
-func (db database) TaxID(id string) (biodv.Taxon, error) {
+func (db taxDB) TaxID(id string) (biodv.Taxon, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return nil, errors.Errorf("gbif: taxonomy: empty taxon ID")

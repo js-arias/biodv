@@ -50,7 +50,7 @@ func RegisterTax(name string, driver TaxDriver) {
 	taxDriversMu.Lock()
 	defer taxDriversMu.Unlock()
 	if driver.Open == nil {
-		panic("biodv: Taxonomy drivers is nil")
+		panic("biodv: Taxonomy driver Open is nil")
 	}
 	if _, dup := taxDrivers[name]; dup {
 		panic("biodv: RegisterTax called twice for driver " + name)
