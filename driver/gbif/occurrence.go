@@ -37,7 +37,7 @@ func aboutRecGBIF() string {
 	return "a driver for the GBIF records DB"
 }
 
-// RecUsaAll is a parameter used to open a recDB
+// RecUseAll is a parameter used to open a recDB
 // that return all records for a given taxon
 // including records with unknown source
 // and human observations.
@@ -48,7 +48,7 @@ const RecUseAll = "use-all"
 // based on observations.
 const RecUseObs = "use-obs"
 
-// RecUseObs is is a parameter used to open a recDB
+// RecSetDataset is is a parameter used to open a recDB
 // that returns records
 // only from the given dataset
 // irrespectibely of the basis of each record.
