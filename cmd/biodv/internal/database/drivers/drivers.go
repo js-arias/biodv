@@ -10,6 +10,7 @@ package drivers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -30,6 +31,7 @@ Options are:
       If set, only the drivers of the given database kind will be
       printed.
       Valid database kinds are:
+        records   specimen record databases
         taxonomy  taxonomic names databases
 	`,
 	Run:           run,
@@ -48,10 +50,30 @@ func register(c *cmdapp.Command) {
 }
 
 func run(c *cmdapp.Command, args []string) error {
+	switch strings.ToLower(dbKind) {
+	case "records":
+		recDrivers()
+	case "taxonomy":
+		taxDrivers()
+	default:
+		recDrivers()
+		taxDrivers()
+	}
+	return nil
+}
+
+func recDrivers() {
+	ls := biodv.RecDrivers()
+	fmt.Printf("Record-DB drivers:\n")
+	for _, dv := range ls {
+		fmt.Printf("    %-16s %s\n", dv, biodv.RecAbout(dv))
+	}
+}
+
+func taxDrivers() {
 	ls := biodv.TaxDrivers()
 	fmt.Printf("Taxonomy drivers:\n")
 	for _, dv := range ls {
 		fmt.Printf("    %-16s %s\n", dv, biodv.TaxAbout(dv))
 	}
-	return nil
 }
