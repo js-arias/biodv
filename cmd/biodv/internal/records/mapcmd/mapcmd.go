@@ -243,6 +243,11 @@ func searchChildren(id string, txm biodv.Taxonomy, recs biodv.RecDB) ([]point, e
 	for _, c := range children {
 		if x, ok := ids[c.ID()]; ok {
 			ls = append(ls, x...)
+			v, err := searchChildren(c.ID(), txm, recs)
+			if err != nil {
+				return nil, err
+			}
+			ls = append(ls, v...)
 			continue
 		}
 		x, err := searchPoints(c.ID(), txm, recs)
