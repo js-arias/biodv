@@ -8,5 +8,6 @@ package main
 
 import (
 	// initialize records sub-commands
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/mapcmd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/table"
 )
