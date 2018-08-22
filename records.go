@@ -303,8 +303,8 @@ type CollectionEvent struct {
 
 // A Point is a georeferencenced point record.
 type Point struct {
-	Lon         float64
 	Lat         float64
+	Lon         float64
 	Altitude    float64
 	Depth       float64
 	Source      string // source of the reference
@@ -314,15 +314,15 @@ type Point struct {
 
 // Maximum and minimum values for geographic coordinates
 const (
-	MinLon = -180
-	MaxLon = 180
 	MinLat = -90
 	MaxLat = 90
+	MinLon = -180
+	MaxLon = 180
 )
 
 // InvalidPoint returns a new Point without a valid georeference.
 func InvalidPoint() Point {
-	return Point{Lon: 360, Lat: 180}
+	return Point{Lat: 180, Lon: 360}
 }
 
 // IsValid returns true if a geographic point is valid.
