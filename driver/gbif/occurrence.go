@@ -258,6 +258,7 @@ func (db recDB) TaxRecs(id string) *biodv.RecScan {
 			param.Add(key, s)
 		}
 	}
+	param.Add("taxonKey", id)
 	param.Add("limit", "300")
 	go db.recordList(sc, req, param)
 	return sc
