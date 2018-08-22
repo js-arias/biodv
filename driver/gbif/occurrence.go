@@ -43,21 +43,31 @@ func aboutRecGBIF() string {
 // and human observations.
 const RecUseAll = "use-all"
 
-// RecUseObs is is a parameter used to open a recDB
+// RecUseObs is a parameter used to open a recDB
 // that returns all records
 // based on observations.
 const RecUseObs = "use-obs"
 
-// RecSetDataset is is a parameter used to open a recDB
+// RecSetDataset is a parameter used to open a recDB
 // that returns records
 // only from the given dataset
 // irrespectibely of the basis of each record.
 //
-// The dataset should be given after the constant:
+// The dataset ID should be given after the constant:
 //
-// 	param = gbif.SetDataset + "83e20573"
+// 	param = gbif.RecSetDataset + "83e20573"
 //	// param is equal to: "dataset:83e20573"
 const RecSetDataset = "dataset:"
+
+// RecOrganism is a parameter used to open a recDB
+// that returns records
+// of a given specimen.
+//
+// The specimen ID should be given after the constant:
+//
+//	param = gbif.RecOrganism + "H903607"
+//	// param is equal to "organism:H903607"
+const RecOrganism = "organism:"
 
 // OpenRec returns the GBIF
 // records handler,
@@ -70,13 +80,17 @@ func OpenRec(param string) (biodv.RecDB, error) {
 		initReqs()
 	}
 	db := recDB{param: url.Values{}}
-	if i := strings.Index(param, ":"); i == len(RecSetDataset)-1 {
-		if param[:i] != RecSetDataset {
-			db.param.Add("basisOfRecord", "PRESERVED_SPECIMEN")
-			db.param.Add("basisOfRecord", "FOSSIL_SPECIMEN")
+	if i := strings.Index(param, ":"); i > 1 {
+		if strings.HasPrefix(param, RecSetDataset) {
+			db.param.Add("dataset_key", param[i+1:])
 			return db, nil
 		}
-		db.param.Add("dataset_key", param[i+1:])
+		if strings.HasPrefix(param, RecOrganism) {
+			db.param.Add("organism_id", param[i+1:])
+			return db, nil
+		}
+		db.param.Add("basisOfRecord", "PRESERVED_SPECIMEN")
+		db.param.Add("basisOfRecord", "FOSSIL_SPECIMEN")
 		return db, nil
 	}
 
