@@ -29,9 +29,10 @@ var cmd = &cmdapp.Command{
 Command rec.table prints a table (separated by tabs) of the records of
 a given taxon in a given database.
 
-If the option -e or --exact is defined, and the database returns all the
-records of a given taxon (including synonyms and correct/valid children)
-then only the records assigned explicitly to the taxon will be printed.
+By default, records assigned to the given taxon (including synonyms and
+correct/valid children) will be printed. If the option -e or --exact is
+defined, then only the records assigned explicitly to the taxon will be
+printed.
 
 If the option -g or --georef is defined, only records with valid
 georeferences will be printed.
@@ -100,6 +101,9 @@ func register(c *cmdapp.Command) {
 	c.Flag.BoolVar(&nohead, "n", false, "")
 }
 
+var ids = make(map[string]bool)
+var rows = make(map[string][]string)
+
 func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
 		return errors.Errorf("%s: no database defined", c.Name())
@@ -126,7 +130,11 @@ func run(c *cmdapp.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
-	if err := printTable(tax, recs); err != nil {
+	if tax == nil {
+		return nil
+	}
+
+	if err := printTable(tax, txm, recs); err != nil {
 		return errors.Wrap(err, c.Name())
 	}
 	return nil
@@ -159,20 +167,29 @@ func getTaxon(txm biodv.Taxonomy, nm string) (biodv.Taxon, error) {
 	return ls[0], nil
 }
 
-func printTable(tax biodv.Taxon, recs biodv.RecDB) error {
+func printTable(tax biodv.Taxon, txm biodv.Taxonomy, recs biodv.RecDB) error {
 	w := csv.NewWriter(os.Stdout)
 	w.Comma = '\t'
 	w.UseCRLF = true
-
-	sr := recs.TaxRecs(tax.ID())
-	i := 0
-	for sr.Scan() {
-		if i == 0 && !nohead {
-			if err := w.Write([]string{"ID", "Taxon", "Lat", "Lon", "Catalog"}); err != nil {
-				return err
-			}
+	if !nohead {
+		if err := w.Write([]string{"ID", "Taxon", "Lat", "Lon", "Catalog"}); err != nil {
+			return err
 		}
+	}
 
+	if err := printSearch(w, tax.ID(), txm, recs); err != nil {
+		return err
+	}
+
+	w.Flush()
+	return w.Error()
+}
+
+// PrintSearch search for the records of a given taxon
+// and print it on the table.
+func printSearch(w *csv.Writer, id string, txm biodv.Taxonomy, recs biodv.RecDB) error {
+	sr := recs.TaxRecs(id)
+	for sr.Scan() {
 		r := sr.Record()
 		row := []string{
 			r.ID(),
@@ -180,10 +197,6 @@ func printTable(tax biodv.Taxon, recs biodv.RecDB) error {
 			"NA",
 			"NA",
 			r.Value(biodv.RecCatalog),
-		}
-
-		if exact && r.ID() != tax.ID() {
-			continue
 		}
 
 		geo := r.GeoRef()
@@ -194,12 +207,66 @@ func printTable(tax biodv.Taxon, recs biodv.RecDB) error {
 			continue
 		}
 
+		if r.Taxon() != id {
+			ids[r.Taxon()] = true
+			rows[r.ID()] = row
+			continue
+		}
+
 		if err := w.Write(row); err != nil {
 			return err
 		}
-		i++
 	}
+	if err := sr.Err(); err != nil {
+		return err
+	}
+	if exact {
+		return nil
+	}
+	return searchChildren(w, id, txm, recs)
+}
 
-	w.Flush()
-	return w.Error()
+// PrintStored use stored records of a given taxon
+// and print it on the table.
+func printStored(w *csv.Writer, id string, txm biodv.Taxonomy, recs biodv.RecDB) error {
+	todel := make(map[string]bool)
+	for _, row := range rows {
+		if row[1] != id {
+			continue
+		}
+		if err := w.Write(row); err != nil {
+			return err
+		}
+		todel[row[0]] = true
+	}
+	for rid := range todel {
+		delete(rows, rid)
+	}
+	return searchChildren(w, id, txm, recs)
+}
+
+// SearchChildren search for reconds on children
+func searchChildren(w *csv.Writer, id string, txm biodv.Taxonomy, recs biodv.RecDB) error {
+	children, err := biodv.TaxList(txm.Children(id))
+	if err != nil {
+		return err
+	}
+	syns, err := biodv.TaxList(txm.Synonyms(id))
+	if err != nil {
+		return err
+	}
+	children = append(children, syns...)
+
+	for _, c := range children {
+		if ids[c.ID()] {
+			if err := printStored(w, c.ID(), txm, recs); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := printSearch(w, c.ID(), txm, recs); err != nil {
+			return err
+		}
+	}
+	return nil
 }
