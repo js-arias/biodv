@@ -10,6 +10,8 @@ Usage:
 The commands are:
     db.drivers       list the database drivers
     help             display help information about biodv
+    rec.map          produce a map with georeferenced records
+    rec.table        print a table of records
     tax.add          add taxon names
     tax.catalog      print a taxonomic catalog
     tax.db.add       add taxons validated on an external DB
@@ -88,6 +90,7 @@ Options are:
       If set, only the drivers of the given database kind will be
       printed.
       Valid database kinds are:
+        records   specimen record databases
         taxonomy  taxonomic names databases
 
 Display help information about biodv
@@ -100,6 +103,128 @@ Command help displays help information for a command or a help topic.
 
 With no arguments it prints the list of available commands and help topics to
 the standard output.
+
+Produce a map with georeferenced records
+
+Usage:
+
+	biodv rec.map [--db <database>] [--id <value>] [-e|--exact]
+		[-m|--map <imagemap>] [-o|--out <filename>]
+		[-s|--size <number>] [<name>]
+
+Command rec.map procedes a image map using a provided image map, and the
+georeferenced records of the indicated taxon.
+
+The image map is defined with the -m or --map option, and should be on
+equirectangular projection, and covering the whole planet. If no map is
+given, then a white backgound image will be used.
+
+The output map is defined with -o or --out option. If no file is given,
+it will create a new file with the name of the taxon, and adding the
+suffix '-map.png'. The output map is with png format, and it will be
+cropped to adjust the data.
+
+If the program finish successfully, it will print the coordinates of the
+resulting map.
+
+By default, records assigned to the given taxon (including synonyms and
+correct/valid children) will be draw on the map. If the option -e or
+--exact is defined, then only the records assigned explicitly to the
+taxon will be used.
+
+The option -s or --size controls the size of the output points.
+
+Options are:
+
+    -db <database>
+    --db <database>
+      If set, the indicated database will be used to produce the map.
+      To see the available databases use the command ‘db.drivers’.
+      The database should include drivers for a taxonomy and records.
+
+    -id <value>
+    --id <value>
+      If set, the map will be based on the indicated taxon.
+
+    -e
+    --exact
+      If set, only the records explicitly assigned to the indicated
+      taxon will be used to produce the map.
+
+    -m <imagemap>
+    --map <imagemap>
+      If set, the given image will be used to produce the map. It is
+      assumed that the map is of the whole world, and it is on
+      equirectangular projection.
+
+    -o <file>
+    --out <file>
+      If defined, the resulting map will be stored with the given name.
+
+    -s <number>
+    --size <number>
+      Defines the size (in pixels) of each record in the map. Default = 2.
+
+    <name>
+     If set, the map will be based on the indicated taxon. If the
+     name is ambiguous, the ID of the ambigous taxa will be printed.
+
+Print a table of records
+
+Usage:
+
+	biodv rec.table [--db <database>] [--id <value>] [-e|--exact]
+		[-g|--georef] [-n|--noheader] [<name>]
+
+Command rec.table prints a table (separated by tabs) of the records of
+a given taxon in a given database.
+
+By default, records assigned to the given taxon (including synonyms and
+correct/valid children) will be printed. If the option -e or --exact is
+defined, then only the records assigned explicitly to the taxon will be
+printed.
+
+If the option -g or --georef is defined, only records with valid
+georeferences will be printed.
+
+By default, the table will be printed with the column header. If the
+option -n or --noheader is defined, then no header will be printed. The
+order of columns is:
+	ID       record ID
+	Taxon    Taxon ID
+	Lat      Geographical latitude
+	Lon      Geographical longitude
+	Catalog  Catalog code of the record
+
+Options are:
+
+    -db <database>
+    --db <database>
+      If set, the indicated database will be used to produce the table.
+      To see the available databases use the command ‘db.drivers’.
+      The database should include drivers for a taxonomy and records.
+
+    -id <value>
+    --id <value>
+      If set, the table will be based on the indicated taxon.
+
+    -e
+    --exact
+      If set, only the records explicitly assigned to the indicated
+      taxon will be printed.
+
+    -g
+    --georef
+      If set, only the records with a valid georeference will be
+      printed.
+
+    -n
+    --noheader
+      If set, the table will be printed without the columns header.
+
+    <name>
+     If set, the table will be based on the indicated taxon. If the
+     name is ambiguous, the ID of the ambigous taxa will be printed.
 
 Stanza file format
 
