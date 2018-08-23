@@ -137,6 +137,7 @@ type occurrence struct {
 
 	// Collection event
 	CollectorName                       string
+	EventDate                           string
 	OccurrenceDate                      string
 	CountryCode                         string
 	StateProvince                       string
@@ -179,7 +180,10 @@ func (occ *occurrence) Basis() biodv.BasisOfRecord {
 }
 
 func (occ *occurrence) CollEvent() biodv.CollectionEvent {
-	t, _ := time.Parse("2006-01-02T15:04:05.000-0700", occ.OccurrenceDate)
+	t, _ := time.Parse("2006-01-02T15:04:05.000-0700", occ.EventDate)
+	if t.IsZero() {
+		t, _ = time.Parse("2006-01-02T15:04:05.000-0700", occ.OccurrenceDate)
+	}
 	cl := biodv.CollectionEvent{
 		Date:      t,
 		Country:   occ.CountryCode,
