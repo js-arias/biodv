@@ -130,7 +130,7 @@ func (sc *Scanner) Err() error {
 }
 
 // Taxon returns the last read taxon.
-// Every call to Raxon must be preceded
+// Every call to Taxon must be preceded
 // by a call to Scan.
 func (sc *Scanner) Taxon() biodv.Taxon {
 	if sc.err != nil {
@@ -145,7 +145,7 @@ func (sc *Scanner) Taxon() biodv.Taxon {
 }
 
 // Scan advances the scanner to the next taxon.
-// It returns false when tere is no more taxons,
+// It returns false when there is no more taxons,
 // or an error happens when preparing it.
 // Err should be consulted to distinguish
 // between the two cases.
