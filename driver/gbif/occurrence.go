@@ -136,28 +136,33 @@ type occurrence struct {
 	CatalogNumber   string
 
 	// Collection event
-	CollectorName    string
-	OccurrenceDate   string
-	CountryCode      string
-	StateProvince    string
-	County           string
-	Locality         string
-	VerbatimLocality string
+	CollectorName                       string
+	OccurrenceDate                      string
+	CountryCode                         string
+	StateProvince                       string
+	County                              string
+	Locality                            string
+	VerbatimLocality                    string
+	MinimumDistanceAboveSurfaceInMeters string
 
 	// Georeference
-	DecimalLongitude                    float64
-	DecimalLatitude                     float64
-	MinimumDistanceAboveSurfaceInMeters string
-	GeoreferenceSources                 string
+	DecimalLongitude    float64
+	DecimalLatitude     float64
+	Elevation           float64
+	Depth               float64
+	GeoreferenceSources string
+
+	// additional data
+	OrganismID            string
+	Sex                   string
+	LifeStage             string
+	BibliographicCitation string
 
 	// comments
 	FieldNotes        string
 	OccurrenceRemarks string
 
-	// additional biologicald data
-	OrganismID string
-	Sex        string
-	LifeStage  string
+	Issues []string
 }
 
 func (occ *occurrence) Taxon() string {
@@ -190,30 +195,28 @@ func (occ *occurrence) CollEvent() biodv.CollectionEvent {
 }
 
 func (occ *occurrence) GeoRef() biodv.Point {
-	lon, lat := float64(360), float64(360)
+	pt := biodv.InvalidPoint()
+	pt.Altitude = occ.Elevation
+	pt.Depth = occ.Depth
 
-	// I put 0 as invalid georef
-	// as some systems put undefined georeferences
-	// as 0, 0.
-	if occ.DecimalLongitude != 0 && occ.DecimalLongitude > biodv.MinLon && occ.DecimalLongitude <= biodv.MaxLon {
-		lon = occ.DecimalLongitude
+	if occ.IsZero() {
+		return pt
 	}
 
-	if occ.DecimalLatitude != 0 && occ.DecimalLatitude > biodv.MinLat && occ.DecimalLatitude <= biodv.MaxLat {
-		lat = occ.DecimalLatitude
+	if occ.DecimalLatitude > biodv.MinLat && occ.DecimalLatitude <= biodv.MaxLat {
+		pt.Lat = occ.DecimalLatitude
 	}
 
-	alt, _ := strconv.ParseInt(occ.MinimumDistanceAboveSurfaceInMeters, 10, 64)
-	return biodv.Point{
-		Lon:      lon,
-		Lat:      lat,
-		Altitude: float64(alt),
-		Source:   occ.GeoreferenceSources,
+	if occ.DecimalLongitude > biodv.MinLon && occ.DecimalLongitude <= biodv.MaxLon {
+		pt.Lon = occ.DecimalLongitude
 	}
+	pt.Source = occ.GeoreferenceSources
+	return pt
 }
 
 func (occ *occurrence) Keys() []string {
 	return []string{
+		biodv.RecRef,
 		biodv.RecDataset,
 		biodv.RecCatalog,
 		biodv.RecDeterm,
@@ -221,11 +224,14 @@ func (occ *occurrence) Keys() []string {
 		biodv.RecOrganism,
 		biodv.RecSex,
 		biodv.RecStage,
+		biodv.RecElevation,
 	}
 }
 
 func (occ *occurrence) Value(key string) string {
 	switch strings.ToLower(strings.TrimSpace(key)) {
+	case biodv.RecRef:
+		return occ.BibliographicCitation
 	case biodv.RecDataset:
 		return occ.DatasetKey
 	case biodv.RecCatalog:
@@ -240,8 +246,29 @@ func (occ *occurrence) Value(key string) string {
 		return strings.ToLower(occ.Sex)
 	case biodv.RecStage:
 		return strings.ToLower(occ.LifeStage)
+	case biodv.RecElevation:
+		return occ.MinimumDistanceAboveSurfaceInMeters
 	}
 	return ""
+}
+
+// IsZero returns true if the "zero coordinate" issue
+// is marked for the occurrence,
+// or if any of latitude or longitude
+// is zero.
+func (occ *occurrence) IsZero() bool {
+	for _, i := range occ.Issues {
+		if i == "ZERO_COORDINATE" {
+			return true
+		}
+	}
+	if occ.DecimalLatitude == 0 {
+		return true
+	}
+	if occ.DecimalLongitude == 0 {
+		return true
+	}
+	return false
 }
 
 func (db recDB) TaxRecs(id string) *biodv.RecScan {

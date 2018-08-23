@@ -353,6 +353,7 @@ func makeMap(pts []point) error {
 	if err := saveMap(dest); err != nil {
 		return err
 	}
+	fmt.Printf("# %d\n", len(pts))
 	fmt.Printf("%.6f,%.6f %.6f,%.6f\n", maxLat, minLon, minLat, maxLon)
 	return nil
 }
