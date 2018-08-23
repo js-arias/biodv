@@ -239,6 +239,9 @@ func (occ *occurrence) Value(key string) string {
 	case biodv.RecDataset:
 		return occ.DatasetKey
 	case biodv.RecCatalog:
+		if occ.CatalogNumber == "" {
+			return ""
+		}
 		return occ.InstitutionCode + ":" + occ.CollectionCode + ":" + occ.CatalogNumber
 	case biodv.RecDeterm:
 		return occ.IdentifierName
