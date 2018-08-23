@@ -130,7 +130,7 @@ Produce a map with georeferenced records
 Usage:
 
 	biodv rec.map [--db <database>] [--id <value>] [-e|--exact]
-		[-m|--map <imagemap>] [-o|--out <filename>]
+		[-h|--heath] [-m|--map <imagemap>] [-o|--out <filename>]
 		[-s|--size <number>] [<name>]
 
 Command rec.map procedes a image map using a provided image map, and the
@@ -153,6 +153,11 @@ correct/valid children) will be draw on the map. If the option -e or
 --exact is defined, then only the records assigned explicitly to the
 taxon will be used.
 
+By default, the records will be draw, overimposed over other records, if
+the option -h or --heath is used, the superposition will be taken into
+accout producing a heath map with a red color for regions with more
+records.
+
 The option -s or --size controls the size of the output points.
 
 Options are:
@@ -171,6 +176,10 @@ Options are:
     --exact
       If set, only the records explicitly assigned to the indicated
       taxon will be used to produce the map.
+
+    -h
+    --heath
+      If set, a heath map will be produced.
 
     -m <imagemap>
     --map <imagemap>
