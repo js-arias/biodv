@@ -239,7 +239,7 @@ func (occ *occurrence) Value(key string) string {
 	case biodv.RecDeterm:
 		return occ.IdentifierName
 	case biodv.RecComment:
-		return occ.FieldNotes + "\n" + occ.OccurrenceRemarks
+		return strings.TrimSpace(occ.FieldNotes + "\n" + occ.OccurrenceRemarks)
 	case biodv.RecOrganism:
 		return occ.OrganismID
 	case biodv.RecSex:

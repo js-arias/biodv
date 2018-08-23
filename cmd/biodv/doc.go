@@ -10,6 +10,7 @@ Usage:
 The commands are:
     db.drivers       list the database drivers
     help             display help information about biodv
+    rec.info         print record information
     rec.map          produce a map with georeferenced records
     rec.table        print a table of records
     tax.add          add taxon names
@@ -103,6 +104,26 @@ Command help displays help information for a command or a help topic.
 
 With no arguments it prints the list of available commands and help topics to
 the standard output.
+
+Print record information
+
+Usage:
+
+	biodv rec.info [-db <database>] <value>
+
+Command rec.info prints the information data available for an specimen
+record, in a given database.
+
+Options are:
+
+    -db <database>
+    --db <database>
+      If set, the indicated database will be used to extract the
+      specimen record information.
+      To see the available databases use the command ‘db.drivers’.
+
+    <value>
+      The ID of the specimen record.
 
 Produce a map with georeferenced records
 
