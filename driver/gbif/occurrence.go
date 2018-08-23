@@ -242,6 +242,10 @@ func (occ *occurrence) Value(key string) string {
 		if occ.CatalogNumber == "" {
 			return ""
 		}
+		if occ.CatalogNumber == "NO DISPONIBLE" {
+			return ""
+		}
+
 		return occ.InstitutionCode + ":" + occ.CollectionCode + ":" + occ.CatalogNumber
 	case biodv.RecDeterm:
 		return occ.IdentifierName

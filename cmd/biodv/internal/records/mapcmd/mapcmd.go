@@ -162,7 +162,7 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 
 	if outName == "" {
-		outName = strings.Join(string-Fields(tax.Name()), "-") + "-map.png"
+		outName = strings.Join(strings.Fields(tax.Name()), "-") + "-map.png"
 	}
 
 	ls, err := searchPoints(tax.ID(), txm, recs)
