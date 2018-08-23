@@ -28,7 +28,7 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: `rec.map [--db <database>] [--id <value>] [-e|--exact]
-		[-m|--map <imagemap>] [-o|--out <filename>]
+		[-h|--heath] [-m|--map <imagemap>] [-o|--out <filename>]
 		[-s|--size <number>] [<name>]`,
 	Short: "produce a map with georeferenced records",
 	Long: `
@@ -52,6 +52,11 @@ correct/valid children) will be draw on the map. If the option -e or
 --exact is defined, then only the records assigned explicitly to the
 taxon will be used.
 
+By default, the records will be draw, overimposed over other records, if
+the option -h or --heath is used, the superposition will be taken into
+accout producing a heath map with a red color for regions with more
+records.
+
 The option -s or --size controls the size of the output points.
 
 Options are:
@@ -70,6 +75,10 @@ Options are:
     --exact
       If set, only the records explicitly assigned to the indicated
       taxon will be used to produce the map.
+
+    -h
+    --heath
+      If set, a heath map will be produced.
 
     -m <imagemap>
     --map <imagemap>
@@ -100,6 +109,7 @@ func init() {
 var dbName string
 var id string
 var exact bool
+var heathOp bool
 var mapName string
 var outName string
 var recSize int
@@ -109,6 +119,8 @@ func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&id, "id", "", "")
 	c.Flag.BoolVar(&exact, "exact", false, "")
 	c.Flag.BoolVar(&exact, "e", false, "")
+	c.Flag.BoolVar(&heathOp, "heath", false, "")
+	c.Flag.BoolVar(&heathOp, "h", false, "")
 	c.Flag.StringVar(&mapName, "map", "", "")
 	c.Flag.StringVar(&mapName, "m", "", "")
 	c.Flag.StringVar(&outName, "out", "", "")
@@ -348,7 +360,11 @@ func makeMap(pts []point) error {
 
 	dest := image.NewRGBA64(image.Rect(0, 0, int(szX), int(szY)))
 	draw.Draw(dest, dest.Bounds(), src, origin, draw.Src)
-	drawPng(dest, pts, scaleX, scaleY, originX, originY)
+	if heathOp {
+		drawHeath(dest, pts, scaleX, scaleY, originX, originY)
+	} else {
+		drawPng(dest, pts, scaleX, scaleY, originX, originY)
+	}
 
 	if err := saveMap(dest); err != nil {
 		return err
@@ -356,6 +372,56 @@ func makeMap(pts []point) error {
 	fmt.Printf("# %d\n", len(pts))
 	fmt.Printf("%.6f,%.6f %.6f,%.6f\n", maxLat, minLon, minLat, maxLon)
 	return nil
+}
+
+// DrawHeath draws a heath map using the records.
+func drawHeath(dest *image.RGBA64, pts []point, scaleX, scaleY float64, originX, originY int) {
+	heath := make(map[string]int)
+	max := 0
+	for _, p := range pts {
+		c := int((180+p.lon)*scaleX) - originX
+		r := int((90-p.lat)*scaleY) - originY
+		for x := c - recSize; x <= c+recSize; x++ {
+			for y := r - recSize; y <= r+recSize; y++ {
+				v := fmt.Sprintf("%d %d", x, y)
+				heath[v]++
+				if heath[v] > max {
+					max = heath[v]
+				}
+			}
+		}
+	}
+	max *= 2
+	for v, h := range heath {
+		var x, y int
+		fmt.Sscanf(v, "%d %d", &x, &y)
+		c := scaleColor(float64(h)/float64(max) + 0.5)
+		dest.Set(x, y, c)
+	}
+}
+
+// ScaleColor returns a color scale
+func scaleColor(scale float64) color.RGBA {
+	if scale < 0 {
+		scale = 0
+	}
+	if scale > 1 {
+		scale = 1
+	}
+	if scale < 0.25 {
+		green := scale * 4 * 255
+		return color.RGBA{0, uint8(green), 255, 255}
+	}
+	if scale < 0.50 {
+		blue := (scale - 0.25) * 4 * 255
+		return color.RGBA{0, 255, 255 - uint8(blue), 255}
+	}
+	if scale < 0.75 {
+		red := (scale - 0.5) * 4 * 255
+		return color.RGBA{uint8(red), 255, 0, 255}
+	}
+	green := (scale - 0.75) * 4 * 255
+	return color.RGBA{255, 255 - uint8(green), 0, 255}
 }
 
 // DrawPng draws the records into the map.
