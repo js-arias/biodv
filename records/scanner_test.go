@@ -9,6 +9,8 @@ package records
 import (
 	"strings"
 	"testing"
+
+	"github.com/js-arias/biodv"
 )
 
 var scannerBlob = `
@@ -69,5 +71,23 @@ func TestScan(t *testing.T) {
 	}
 	if i != len(testData) {
 		t.Errorf("found %d records, want %d", i, len(testData))
+	}
+}
+
+func TestDBScan(t *testing.T) {
+	db := &DB{tids: make(map[string]*taxon), ids: make(map[string]*Record)}
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	for _, d := range testData {
+		rec, _ := db.RecID(d.id)
+		if rec == nil {
+			t.Errorf("record %q not found", d.id)
+		}
+		if v := rec.Value(biodv.RecExtern); v != d.extern {
+			t.Errorf("record %q, extern %q, want %q", rec.ID(), v, d.extern)
+		}
 	}
 }

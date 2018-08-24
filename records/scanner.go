@@ -245,6 +245,11 @@ func (sc *Scanner) Scan() bool {
 			storeLatLon(rec, lat, lon)
 		}
 
+		un, _ := strconv.Atoi(rec[uncertaintyKey])
+		if un == 0 {
+			delete(rec, uncertaintyKey)
+		}
+
 		sc.rec = rec
 		return true
 	}

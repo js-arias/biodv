@@ -14,15 +14,16 @@ import (
 )
 
 var testData = []struct {
-	taxon string
-	basis biodv.BasisOfRecord
-	id    string
-	lat   float64
-	lon   float64
+	taxon  string
+	basis  biodv.BasisOfRecord
+	id     string
+	lat    float64
+	lon    float64
+	extern string
 }{
-	{"Larus argentatus", biodv.Machine, "Larus-argentatus:1", 50.223982, 1.596802},
-	{"Felis concolor couguar", biodv.Preserved, "Felis-concolor-couguar:1", 360, 360},
-	{"Felis concolor", biodv.Preserved, "MSU:MR:MR.8672", 0.25, -79.8333},
+	{"Larus argentatus", biodv.Machine, "Larus argentatus:1", 50.223982, 1.596802, "gbif:1494057472"},
+	{"Felis concolor couguar", biodv.Preserved, "Felis concolor couguar:1", 360, 360, "gbif:1893501987"},
+	{"Felis concolor", biodv.Preserved, "MSU:MR:MR.8672", 0.25, -79.8333, "gbif:919431660"},
 }
 
 func TestTaxFileName(t *testing.T) {
@@ -45,7 +46,7 @@ func TestTaxFileName(t *testing.T) {
 var _ biodv.RecDB = &DB{}
 
 func TestAdd(t *testing.T) {
-	db := &DB{make(map[string]*taxon), make(map[string]*Record)}
+	db := &DB{tids: make(map[string]*taxon), ids: make(map[string]*Record)}
 
 	if _, err := db.Add("", "", "", biodv.UnknownBasis, 360, 360); err == nil {
 		t.Errorf("adding a record without a taxon, expecting error")
@@ -62,7 +63,7 @@ func TestAdd(t *testing.T) {
 			t.Errorf("record %q, taxon %q, want %q", rec.ID(), rec.Taxon(), d.taxon)
 		}
 		geo := rec.GeoRef()
-		if d.id == "Felis-concolor-couguar:1" {
+		if d.id == "Felis concolor couguar:1" {
 			if geo.IsValid() {
 				t.Errorf("record %q, valid georef", d.id)
 			}
