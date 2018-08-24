@@ -242,11 +242,7 @@ func (sc *Scanner) Scan() bool {
 		if len(v) == 2 {
 			lat, _ := strconv.ParseFloat(v[0], 64)
 			lon, _ := strconv.ParseFloat(v[1], 64)
-			if lat != 0 && lat > biodv.MinLat && lat < biodv.MaxLat {
-				if lon != 0 && lon > biodv.MinLon && lon <= biodv.MaxLon {
-					rec[latlonKey] = fmt.Sprintf("%f %f", lat, lon)
-				}
-			}
+			storeLatLon(rec, lat, lon)
 		}
 
 		sc.rec = rec
@@ -259,4 +255,13 @@ func (sc *Scanner) Scan() bool {
 	}
 	sc.Close()
 	return false
+}
+
+func storeLatLon(rec map[string]string, lat, lon float64) {
+	delete(rec, latlonKey)
+	if lat != 0 && lat > biodv.MinLat && lat < biodv.MaxLat {
+		if lon != 0 && lon > biodv.MinLon && lon <= biodv.MaxLon {
+			rec[latlonKey] = fmt.Sprintf("%f %f", lat, lon)
+		}
+	}
 }

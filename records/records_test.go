@@ -7,6 +7,7 @@
 package records
 
 import (
+	"math"
 	"testing"
 
 	"github.com/js-arias/biodv"
@@ -37,6 +38,58 @@ func TestTaxFileName(t *testing.T) {
 	for _, p := range names {
 		if f := taxFileName(p.taxon); f != p.file {
 			t.Errorf("wrong file name %q, want %q", f, p.file)
+		}
+	}
+}
+
+var _ biodv.RecDB = &DB{}
+
+func TestAdd(t *testing.T) {
+	db := &DB{make(map[string]*taxon), make(map[string]*Record)}
+
+	if _, err := db.Add("", "", "", biodv.UnknownBasis, 360, 360); err == nil {
+		t.Errorf("adding a record without a taxon, expecting error")
+	}
+	for _, d := range testData {
+		rec, err := db.Add(d.taxon, d.id, "", d.basis, d.lat, d.lon)
+		if err != nil {
+			t.Errorf("when adding %q: %v", d.id, err)
+		}
+		if rec.ID() != d.id {
+			t.Errorf("record %q, want %q", rec.ID(), d.id)
+		}
+		if rec.Taxon() != d.taxon {
+			t.Errorf("record %q, taxon %q, want %q", rec.ID(), rec.Taxon(), d.taxon)
+		}
+		geo := rec.GeoRef()
+		if d.id == "Felis-concolor-couguar:1" {
+			if geo.IsValid() {
+				t.Errorf("record %q, valid georef", d.id)
+			}
+			continue
+		}
+		if !geo.IsValid() {
+			t.Errorf("record %q, invalid georef", d.id)
+		}
+		if math.Abs(geo.Lat-d.lat) > 0.01 {
+			t.Errorf("record %q, lat %f, want %f", d.id, geo.Lat, d.lat)
+		}
+		if math.Abs(geo.Lon-d.lon) > 0.01 {
+			t.Errorf("record %q, lon %f, want %f", d.id, geo.Lon, d.lon)
+		}
+
+	}
+
+	for _, d := range testData {
+		rec, _ := db.RecID(d.id)
+		if rec == nil {
+			t.Errorf("record %q, not found", d.id)
+		}
+	}
+
+	for _, d := range testData {
+		if _, err := db.Add(d.taxon, d.id, "", d.basis, d.lat, d.lon); err == nil {
+			t.Errorf("when adding %q: expecting error", d.id)
 		}
 	}
 }
