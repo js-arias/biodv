@@ -7,6 +7,7 @@
 package records
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -203,7 +204,52 @@ func (sc *Scanner) Scan() bool {
 		if !sc.sc.Scan() {
 			break
 		}
-		sc.rec = sc.sc.Record()
+		rec := sc.sc.Record()
+
+		if rec[idKey] == "" {
+			sc.Close()
+			sc.err = errors.New("records: scanner: record without ID")
+			return false
+		}
+		if rec[taxonKey] == "" {
+			sc.Close()
+			sc.err = errors.Errorf("records: scanner: record %q without assigned taxon", rec[idKey])
+			return false
+		}
+
+		rec[basisKey] = biodv.GetBasis(rec[basisKey]).String()
+		t, _ := time.Parse(time.RFC3339, rec[dateKey])
+		if t.IsZero() {
+			delete(rec, dateKey)
+		} else {
+			rec[dateKey] = t.Format(time.RFC3339)
+		}
+		alt, _ := strconv.ParseFloat(rec[altitudeKey], 64)
+		if alt > 0 {
+			rec[altitudeKey] = strconv.FormatFloat(alt, 'f', -1, 64)
+		} else {
+			delete(rec, altitudeKey)
+		}
+		dep, _ := strconv.ParseFloat(rec[depthKey], 64)
+		if dep < 0 {
+			rec[depthKey] = strconv.FormatFloat(dep, 'f', -1, 64)
+		} else {
+			delete(rec, depthKey)
+		}
+
+		v := strings.Fields(rec[latlonKey])
+		delete(rec, latlonKey)
+		if len(v) == 2 {
+			lat, _ := strconv.ParseFloat(v[0], 64)
+			lon, _ := strconv.ParseFloat(v[1], 64)
+			if lat != 0 && lat > biodv.MinLat && lat < biodv.MaxLat {
+				if lon != 0 && lon > biodv.MinLon && lon <= biodv.MaxLon {
+					rec[latlonKey] = fmt.Sprintf("%f %f", lat, lon)
+				}
+			}
+		}
+
+		sc.rec = rec
 		return true
 	}
 	if err := sc.sc.Err(); err != nil {
