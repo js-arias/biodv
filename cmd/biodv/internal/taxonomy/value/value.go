@@ -72,20 +72,9 @@ func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
 		dbName = "biodv"
 	}
-	var param string
-	dbName, param = biodv.ParseDriverString(dbName)
 
 	nm := strings.Join(args, " ")
-	if id == "" && nm == "" {
-		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
-	}
-
-	db, err := biodv.OpenTax(dbName, param)
-	if err != nil {
-		return errors.Wrap(err, c.Name())
-	}
-
-	tax, err := getTaxon(db, nm)
+	tax, err := getTaxon(nm)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
@@ -121,7 +110,19 @@ func run(c *cmdapp.Command, args []string) error {
 }
 
 // GetTaxon returns a taxon from the options.
-func getTaxon(db biodv.Taxonomy, nm string) (biodv.Taxon, error) {
+func getTaxon(nm string) (biodv.Taxon, error) {
+	if id == "" && nm == "" {
+		return nil, errors.New("either a --id or a taxon name, should be given")
+	}
+
+	var param string
+	dbName, param = biodv.ParseDriverString(dbName)
+
+	db, err := biodv.OpenTax(dbName, param)
+	if err != nil {
+		return nil, err
+	}
+
 	if id != "" {
 		return db.TaxID(id)
 	}
