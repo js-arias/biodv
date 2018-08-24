@@ -28,8 +28,9 @@ const taxFile = "taxonomy.stz"
 type DB struct {
 	path    string
 	ids     map[string]*Taxon
-	changed bool // tire if the database was modified
+	changed bool // true if the database was modified
 	root    []*Taxon
+	sorted  bool
 }
 
 // Taxon returns a list of taxons with a given name.
@@ -95,6 +96,10 @@ func getTaxonID(id string) string {
 func (db *DB) TaxList(id string) []*Taxon {
 	id = getTaxonID(id)
 	if id == "" {
+		if !db.sorted {
+			sortTaxons(db.root)
+			db.sorted = true
+		}
 		ls := make([]*Taxon, len(db.root))
 		copy(ls, db.root)
 		return ls
@@ -102,6 +107,10 @@ func (db *DB) TaxList(id string) []*Taxon {
 	tax, ok := db.ids[id]
 	if !ok {
 		return nil
+	}
+	if !tax.sorted {
+		sortTaxons(tax.children)
+		tax.sorted = true
 	}
 	ls := make([]*Taxon, len(tax.children))
 	copy(ls, tax.children)
@@ -119,12 +128,20 @@ func (db *DB) Children(id string) *biodv.TaxScan {
 	id = getTaxonID(id)
 	var ls []*Taxon
 	if id == "" {
+		if !db.sorted {
+			sortTaxons(db.root)
+			db.sorted = true
+		}
 		ls = db.root
 	} else {
 		tax, ok := db.ids[id]
 		if !ok {
 			sc.Add(nil, nil)
 			return sc
+		}
+		if !tax.sorted {
+			sortTaxons(tax.children)
+			tax.sorted = true
 		}
 		ls = tax.children
 	}
@@ -154,6 +171,10 @@ func (db *DB) Synonyms(id string) *biodv.TaxScan {
 		sc.Add(nil, nil)
 		return sc
 	}
+	if !tax.sorted {
+		sortTaxons(tax.children)
+		tax.sorted = true
+	}
 	go func() {
 		for _, sn := range tax.children {
 			if !sn.IsCorrect() {
@@ -172,6 +193,7 @@ type Taxon struct {
 	data     map[string]string
 	parent   *Taxon
 	children []*Taxon
+	sorted   bool
 }
 
 // Name returns the canonical name of the current taxon.
@@ -305,10 +327,8 @@ func (tax *Taxon) Set(key, value string) error {
 			return nil
 		}
 		tax.data[key] = value
-		if tax.parent == nil {
-			sortTaxons(tax.db.root)
-		} else {
-			sortTaxons(tax.parent.children)
+		if tax.parent != nil {
+			tax.parent.sorted = false
 		}
 		return nil
 	default:
@@ -384,10 +404,10 @@ func (tax *Taxon) Move(parent string, status bool) error {
 	tax.data[parentKey] = parent
 	if p != nil {
 		p.children = append(p.children, tax)
-		sortTaxons(p.children)
+		p.sorted = false
 	} else {
 		tax.db.root = append(tax.db.root, tax)
-		sortTaxons(tax.db.root)
+		tax.db.sorted = false
 	}
 	tax.moveChildren()
 	tax.db.changed = true
@@ -412,7 +432,7 @@ func (tax *Taxon) moveChildren() {
 		c.parent = tax.parent
 	}
 	tax.parent.children = append(tax.parent.children, tax.children...)
-	sortTaxons(tax.parent.children)
+	tax.parent.sorted = false
 	tax.children = nil
 }
 
@@ -436,6 +456,11 @@ func (tax *Taxon) encode(w *stanza.Writer) error {
 
 	if err := w.Write(tax.data); err != nil {
 		return errors.Wrapf(err, "unable to writer %s", tax.Name())
+	}
+
+	if !tax.sorted {
+		sortTaxons(tax.children)
+		tax.sorted = true
 	}
 	for _, c := range tax.children {
 		if err := c.encode(w); err != nil {
@@ -553,7 +578,7 @@ func (tax *Taxon) remove() {
 			c.parent = tax.parent
 		}
 		tax.parent.children = append(tax.parent.children, tax.children...)
-		sortTaxons(tax.parent.children)
+		tax.parent.sorted = false
 	}
 	tax.children = nil
 	tax.parent = nil
@@ -709,10 +734,8 @@ func (db *DB) Add(name, parent string, rank biodv.Rank, correct bool) (*Taxon, e
 	tax.parent = p
 	if p == nil {
 		db.root = append(db.root, tax)
-		sortTaxons(db.root)
 	} else {
 		p.children = append(p.children, tax)
-		sortTaxons(p.children)
 	}
 	db.ids[name] = tax
 	db.changed = true
@@ -746,6 +769,10 @@ func (db *DB) Commit() (err error) {
 	w := stanza.NewWriter(f)
 	defer w.Flush()
 
+	if !db.sorted {
+		sortTaxons(db.root)
+		db.sorted = true
+	}
 	for _, tax := range db.root {
 		if err := tax.encode(w); err != nil {
 			return errors.Wrap(err, "taxonomy: db: commit")
