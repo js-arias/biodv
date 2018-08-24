@@ -133,7 +133,7 @@ Usage:
 		[-h|--heath] [-m|--map <imagemap>] [-o|--out <filename>]
 		[-s|--size <number>] [<name>]
 
-Command rec.map procedes a image map using a provided image map, and the
+Command rec.map produces a image map using a provided image map, and the
 georeferenced records of the indicated taxon.
 
 The image map is defined with the -m or --map option, and should be on

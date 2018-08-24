@@ -7,7 +7,14 @@
 // Biodv is a tool for management and analysis of biodiveristy data.
 package main
 
-import "github.com/js-arias/biodv/cmdapp"
+import (
+	"github.com/js-arias/biodv/cmdapp"
+
+	// image drivers
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+)
 
 func main() {
 	cmdapp.Short = "Biodv is a tool for management and analysis of biodiveristy data."

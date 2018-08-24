@@ -90,7 +90,7 @@ func print(txm biodv.Taxonomy, rc biodv.Record) error {
 		fmt.Printf("Catalogue ID: %s\n", cat)
 	}
 	if org := rc.Value(biodv.RecOrganism); org != "" {
-		fmt.Printf("Organims ID: %s\n", org)
+		fmt.Printf("Organism ID: %s\n", org)
 	}
 	if stg := rc.Value(biodv.RecStage); stg != "" {
 		fmt.Printf("Stage: %s\n", stg)

@@ -26,7 +26,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// Default datbase directory
+// Default database directory
 const recDir = "records"
 
 // TaxFileName returns the expected file name,
@@ -457,10 +457,7 @@ func (db *DB) scan(sc *Scanner) error {
 			}
 		}
 	}
-	if err := sc.Err(); err != nil {
-		return err
-	}
-	return nil
+	return sc.Err()
 }
 
 // Add adds a new record to a DB.

@@ -686,11 +686,8 @@ func (db *DB) scan(sc *Scanner) error {
 				return err
 			}
 		}
-		if err := sc.Err(); err != nil {
-			return err
-		}
 	}
-	return nil
+	return sc.Err()
 }
 
 // Add adds a new taxon name to a DB.

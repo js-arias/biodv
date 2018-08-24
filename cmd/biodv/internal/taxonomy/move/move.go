@@ -110,13 +110,9 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Errorf("%s: invalid status value %q", c.Name(), status)
 	}
 
-	var pID string
-	if to != "" {
-		p := db.TaxEd(to)
-		if p == nil {
-			return errors.Errorf("%s: parent %q not in database", c.Name(), to)
-		}
-		pID = p.ID()
+	pID, err := getParentID(db)
+	if err != nil {
+		return errors.Wrap(err, c.Name())
 	}
 
 	if err := tax.Move(pID, sv); err != nil {
@@ -127,4 +123,17 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 	return nil
+}
+
+func getParentID(db *taxonomy.DB) (string, error) {
+	var pID string
+
+	if to != "" {
+		p := db.TaxEd(to)
+		if p == nil {
+			return "", errors.Errorf("parent %q not in database", to)
+		}
+		pID = p.ID()
+	}
+	return pID, nil
 }

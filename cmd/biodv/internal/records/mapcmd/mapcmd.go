@@ -17,9 +17,6 @@ import (
 	"os"
 	"strings"
 
-	_ "image/gif"
-	_ "image/jpeg"
-
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
 
@@ -32,7 +29,7 @@ var cmd = &cmdapp.Command{
 		[-s|--size <number>] [<name>]`,
 	Short: "produce a map with georeferenced records",
 	Long: `
-Command rec.map procedes a image map using a provided image map, and the
+Command rec.map produces a image map using a provided image map, and the
 georeferenced records of the indicated taxon.
 
 The image map is defined with the -m or --map option, and should be on
@@ -299,10 +296,7 @@ func saveMap(dest *image.RGBA64) error {
 		f.Close()
 		return err
 	}
-	if err := f.Close(); err != nil {
-		return err
-	}
-	return nil
+	return f.Close()
 }
 
 type point struct {
