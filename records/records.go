@@ -9,13 +9,17 @@
 package records
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
 
@@ -440,6 +444,30 @@ func getService(id string) string {
 		return ""
 	}
 	return id[:i]
+}
+
+// ReadTaxList reads taxon names from a file.
+func (db *DB) readTaxList(r io.Reader) error {
+	s := bufio.NewScanner(r)
+	for s.Scan() {
+		name := biodv.TaxCanon(s.Text())
+		if name == "" {
+			continue
+		}
+		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' || !unicode.IsLetter(nm) {
+			continue
+		}
+		if _, dup := db.tids[name]; dup {
+			continue
+		}
+		tax := &taxon{id: name, db: db}
+		db.tids[name] = tax
+	}
+	if err := s.Err(); err != nil {
+		return err
+	}
+	db.changed = true
+	return nil
 }
 
 // Scan uses a scanner

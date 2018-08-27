@@ -8,6 +8,7 @@ package records
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/js-arias/biodv"
@@ -92,5 +93,60 @@ func TestAdd(t *testing.T) {
 		if _, err := db.Add(d.taxon, d.id, "", d.basis, d.lat, d.lon); err == nil {
 			t.Errorf("when adding %q: expecting error", d.id)
 		}
+	}
+}
+
+var taxBlob = `
+
+Struthio camelus
+Rhea americana
+Pterocnemia pennata
+Casuarius casuarius
+Casuarius bennetti
+Emuarius guljaruba
+Emuarius gidju
+Dromaius baudinianus
+Dromaius novaehollandiae
+Apteryx owenii
+Apteryx haastii
+Apteryx mantelli
+Mullerornis agilis
+Aepyornis hildebrandti
+
+Crypturellus tataupa
+Tinamus major
+Eudromia elegans
+Lithornis hookeri
+Lithornis celetius
+Lithornis vulturinus
+Anomalopteryx didiformis
+Emeus crassus
+
+# Rhedosaurus
+; Indominus rex
+
+Euryapteryx curtus
+Pachyornis geranoides
+Pachyornis elephantopus
+Pachyornis australis
+Dinornis robustus
+Megalapteryx didinus
+
+`
+
+func TestTaxonList(t *testing.T) {
+	db := &DB{tids: make(map[string]*taxon), ids: make(map[string]*Record)}
+	r := strings.NewReader(taxBlob)
+	if err := db.readTaxList(r); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if _, ok := db.tids["Lithornis hookeri"]; !ok {
+		t.Errorf("taxon list unread")
+	}
+	if _, ok := db.tids[biodv.TaxCanon("# Rhedosaurus")]; ok {
+		t.Errorf("lines bigining with '#' should be left unread")
+	}
+	if _, ok := db.tids[biodv.TaxCanon("; Indominus rex")]; ok {
+		t.Errorf("lines bigining with ';' should be left unread")
 	}
 }
