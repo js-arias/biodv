@@ -24,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
+	"github.com/js-arias/biodv/encoding/stanza"
 
 	"github.com/pkg/errors"
 )
@@ -98,6 +99,44 @@ type taxon struct {
 	id      string
 	recs    []*Record
 	changed bool
+}
+
+// Commit saves a list of taxon records
+// to a file.
+func (tax *taxon) commit() (err error) {
+	if !tax.changed {
+		return nil
+	}
+
+	if len(tax.recs) == 0 {
+		tax.changed = false
+		return nil
+	}
+
+	taxFile := taxFileName(tax.id)
+	file := filepath.Join(tax.db.path, recDir, taxFile)
+	var f *os.File
+	f, err = os.Create(file)
+	if err != nil {
+		return errors.Wrap(err, "records: db: commit")
+	}
+	defer func() {
+		e1 := f.Close()
+		if err == nil && e1 != nil {
+			err = errors.Wrap(e1, "records: db: commit")
+		}
+	}()
+
+	w := stanza.NewWriter(f)
+	defer w.Flush()
+
+	for _, rec := range tax.recs {
+		if err = rec.encode(w); err != nil {
+			return
+		}
+	}
+	tax.changed = false
+	return nil
 }
 
 // Record is a record stored in a DB.
@@ -450,6 +489,35 @@ func getService(id string) string {
 	return id[:i]
 }
 
+// Encode writes a record
+// into a stanza writer.
+func (rec *Record) encode(w *stanza.Writer) error {
+	fields := []string{
+		taxonKey,
+		idKey,
+		basisKey,
+		dateKey,
+		countryKey,
+		stateKey,
+		countyKey,
+		localityKey,
+		collectorKey,
+		latlonKey,
+		uncertaintyKey,
+		altitudeKey,
+		depthKey,
+		geosourceKey,
+		validationKey,
+	}
+	fields = append(fields, rec.Keys()...)
+	w.SetFields(fields)
+
+	if err := w.Write(rec.data); err != nil {
+		return errors.Wrapf(err, "unable to write %s [taxon %s]", rec.ID(), rec.Taxon())
+	}
+	return nil
+}
+
 // Open opens a DB
 // on a given path.
 func Open(path string) (*DB, error) {
@@ -572,6 +640,54 @@ func (db *DB) Add(taxID, id, catalog string, basis biodv.BasisOfRecord, lat, lon
 	}
 	tax.changed = true
 	return rec, nil
+}
+
+// Commit saves a record database to hard disk.
+func (db *DB) Commit() error {
+	if db.changed {
+		if err := db.saveTaxList(); err != nil {
+			return err
+		}
+	}
+
+	for _, tax := range db.tids {
+		if err := tax.commit(); err != nil {
+			return errors.Wrap(err, "records: db: commit")
+		}
+	}
+	return nil
+}
+
+func (db *DB) saveTaxList() (err error) {
+	if _, err := os.Lstat(filepath.Join(db.path, recDir)); err != nil {
+		if err := os.Mkdir(filepath.Join(db.path, recDir), os.ModeDir|os.ModePerm); err != nil {
+			return errors.Wrapf(err, "records: db: commit: unable to create %s directory", recDir)
+		}
+	}
+
+	file := filepath.Join(db.path, recDir, recTaxList)
+	var f *os.File
+	f, err = os.Create(file)
+	if err != nil {
+		return errors.Wrap(err, "records: db: commit")
+	}
+	defer func() {
+		e1 := f.Close()
+		if err == nil && e1 != nil {
+			err = errors.Wrap(e1, "records: db: commit")
+		}
+	}()
+
+	ls := make([]string, 0, len(db.tids))
+	for _, tax := range db.tids {
+		ls = append(ls, tax.id)
+	}
+	sort.Strings(ls)
+
+	for _, v := range ls {
+		fmt.Printf("%s\n", v)
+	}
+	return nil
 }
 
 // GenerateID generates a new ID for a record
