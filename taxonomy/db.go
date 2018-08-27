@@ -758,7 +758,7 @@ func (db *DB) Commit() (err error) {
 	}
 	defer func() {
 		e1 := f.Close()
-		if err == nil {
+		if err == nil && e1 != nil {
 			err = errors.Wrap(e1, "taxonomy: db: commit")
 		}
 	}()
@@ -776,5 +776,5 @@ func (db *DB) Commit() (err error) {
 		}
 	}
 	db.changed = false
-	return nil
+	return
 }
