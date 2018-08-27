@@ -239,14 +239,7 @@ func (occ *occurrence) Value(key string) string {
 	case biodv.RecDataset:
 		return occ.DatasetKey
 	case biodv.RecCatalog:
-		if occ.CatalogNumber == "" {
-			return ""
-		}
-		if occ.CatalogNumber == "NO DISPONIBLE" {
-			return ""
-		}
-
-		return occ.InstitutionCode + ":" + occ.CollectionCode + ":" + occ.CatalogNumber
+		return occ.catalog()
 	case biodv.RecDeterm:
 		return occ.IdentifierName
 	case biodv.RecComment:
@@ -261,6 +254,44 @@ func (occ *occurrence) Value(key string) string {
 		return occ.MinimumDistanceAboveSurfaceInMeters
 	}
 	return ""
+}
+
+func (occ *occurrence) catalog() string {
+	if occ.CatalogNumber == "" {
+		return ""
+	}
+	if occ.CatalogNumber == "NO DISPONIBLE" {
+		return ""
+	}
+	if occ.InstitutionCode == "" {
+		return occ.CatalogNumber
+	}
+	cat := occ.CatalogNumber
+	coll := occ.CollectionCode
+	inst := occ.InstitutionCode
+
+	if inst == coll {
+		coll = ""
+	}
+	if strings.HasPrefix(cat, occ.CollectionCode) {
+		coll = ""
+	}
+	if strings.HasPrefix(cat, occ.InstitutionCode) {
+		inst = ""
+		coll = ""
+	}
+	if coll != "" && strings.HasPrefix(occ.CollectionCode, occ.InstitutionCode) {
+		inst = ""
+	}
+
+	v := cat
+	if coll != "" {
+		v = coll + ":" + cat
+	}
+	if inst != "" {
+		v = inst + ":" + v
+	}
+	return v
 }
 
 // IsZero returns true if the "zero coordinate" issue

@@ -91,7 +91,7 @@ var georef bool
 var nohead bool
 
 func register(c *cmdapp.Command) {
-	c.Flag.StringVar(&dbName, "db", "", "")
+	c.Flag.StringVar(&dbName, "db", "biodv", "")
 	c.Flag.StringVar(&id, "id", "", "")
 	c.Flag.BoolVar(&exact, "exact", false, "")
 	c.Flag.BoolVar(&exact, "e", false, "")
@@ -106,7 +106,7 @@ var rows = make(map[string][]string)
 
 func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
-		return errors.Errorf("%s: no database defined", c.Name())
+		dbName = "biodv"
 	}
 	var param string
 	dbName, param = biodv.ParseDriverString(dbName)

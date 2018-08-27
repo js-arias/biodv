@@ -46,12 +46,12 @@ func init() {
 var dbName string
 
 func register(c *cmdapp.Command) {
-	c.Flag.StringVar(&dbName, "db", "", "")
+	c.Flag.StringVar(&dbName, "db", "biodv", "")
 }
 
 func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
-		return errors.Errorf("%s: no database defined", c.Name())
+		dbName = "biodv"
 	}
 	var param string
 	dbName, param = biodv.ParseDriverString(dbName)

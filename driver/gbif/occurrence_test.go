@@ -9,6 +9,8 @@ package gbif
 import (
 	"bytes"
 	"testing"
+
+	"github.com/js-arias/biodv"
 )
 
 func TestDecodeRecordList(t *testing.T) {
@@ -39,3 +41,28 @@ var larusBlob = `
 `
 
 var noRecsBlob = `{"offset":0,"limit":300,"endOfRecords":true,"count":0,"results":[],"facets":[]}`
+
+func TestCatalog(t *testing.T) {
+	testData := []struct {
+		data *occurrence
+		want string
+	}{
+		{&occurrence{InstitutionCode: "AM", CollectionCode: "Mammalogy", CatalogNumber: "M.1327"}, "AM:Mammalogy:M.1327"},
+		{&occurrence{CollectionCode: "Mammalia", CatalogNumber: "RMNH.MAM.51709"}, "RMNH.MAM.51709"},
+		{&occurrence{InstitutionCode: "AMNH", CollectionCode: "AMNH", CatalogNumber: "143466"}, "AMNH:143466"},
+		{&occurrence{InstitutionCode: "AMNH", CollectionCode: "Mammals", CatalogNumber: "M-36242"}, "AMNH:Mammals:M-36242"},
+		{&occurrence{InstitutionCode: "CIIDIR-IPN", CollectionCode: "CRD", CatalogNumber: "CRD5130"}, "CIIDIR-IPN:CRD5130"},
+		{&occurrence{InstitutionCode: "CMN", CollectionCode: "CMNMA", CatalogNumber: "CMNMA 11269"}, "CMNMA 11269"},
+		{&occurrence{InstitutionCode: "ICN", CollectionCode: "ICN-MHN-Ma", CatalogNumber: "1373"}, "ICN-MHN-Ma:1373"},
+		{&occurrence{InstitutionCode: "INIREB", CollectionCode: "INIREB", CatalogNumber: "185"}, "INIREB:185"},
+		{&occurrence{InstitutionCode: "ISM", CollectionCode: "ISM-Mammals", CatalogNumber: "686867"}, "ISM-Mammals:686867"},
+		{&occurrence{InstitutionCode: "KPM", CollectionCode: "NF1", CatalogNumber: "KPM-NF1001895"}, "KPM-NF1001895"},
+		{&occurrence{InstitutionCode: "MHNG", CollectionCode: "Mammals housed at MHNG, Geneva", CatalogNumber: "MHNG-MAM-1112.098"}, "MHNG-MAM-1112.098"},
+	}
+
+	for _, d := range testData {
+		if v := d.data.Value(biodv.RecCatalog); v != d.want {
+			t.Errorf("catalog %q, want %q", v, d.want)
+		}
+	}
+}

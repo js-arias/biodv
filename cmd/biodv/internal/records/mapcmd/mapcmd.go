@@ -112,7 +112,7 @@ var outName string
 var recSize int
 
 func register(c *cmdapp.Command) {
-	c.Flag.StringVar(&dbName, "db", "", "")
+	c.Flag.StringVar(&dbName, "db", "biodv", "")
 	c.Flag.StringVar(&id, "id", "", "")
 	c.Flag.BoolVar(&exact, "exact", false, "")
 	c.Flag.BoolVar(&exact, "e", false, "")
@@ -130,7 +130,7 @@ var ids = make(map[string][]point)
 
 func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
-		return errors.Errorf("%s: no database defined", c.Name())
+		dbName = "biodv"
 	}
 	var param string
 	dbName, param = biodv.ParseDriverString(dbName)
