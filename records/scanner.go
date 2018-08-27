@@ -225,12 +225,16 @@ func (sc *Scanner) Scan() bool {
 			rec[dateKey] = t.Format(time.RFC3339)
 		}
 		alt, _ := strconv.ParseFloat(rec[altitudeKey], 64)
+		dep, _ := strconv.ParseFloat(rec[depthKey], 64)
+		if alt > 0 && dep < 0 {
+			alt = 0
+			dep = 0
+		}
 		if alt > 0 {
 			rec[altitudeKey] = strconv.FormatFloat(alt, 'f', -1, 64)
 		} else {
 			delete(rec, altitudeKey)
 		}
-		dep, _ := strconv.ParseFloat(rec[depthKey], 64)
 		if dep < 0 {
 			rec[depthKey] = strconv.FormatFloat(dep, 'f', -1, 64)
 		} else {

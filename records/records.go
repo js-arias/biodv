@@ -249,6 +249,11 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 		rec.taxon.changed = true
 	}
 
+	if geo.Altitude > 0 && geo.Depth < 0 {
+		geo.Altitude = old.Altitude
+		geo.Depth = old.Depth
+	}
+
 	if geo.Altitude == 0 {
 		if rec.data[altitudeKey] != "" {
 			delete(rec.data, altitudeKey)
