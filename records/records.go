@@ -14,6 +14,8 @@ import (
 	"io"
 	"math"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,6 +34,7 @@ func init() {
 
 // Default database directory
 const recDir = "records"
+const recTaxList = "taxons.lst"
 
 // TaxFileName returns the expected file name,
 // for the records of a given taxon.
@@ -48,6 +51,7 @@ func taxFileName(name string) string {
 // for reading and writing data.
 // DB implements the biodv.RecDB interface.
 type DB struct {
+	path    string
 	tids    map[string]*taxon
 	ids     map[string]*Record
 	changed bool
@@ -444,6 +448,35 @@ func getService(id string) string {
 		return ""
 	}
 	return id[:i]
+}
+
+// Open opens a DB
+// on a given path.
+func Open(path string) (*DB, error) {
+	db := &DB{
+		path: path,
+		ids:  make(map[string]*Record),
+		tids: make(map[string]*taxon),
+	}
+	file := filepath.Join(path, recDir, recTaxList)
+	f, err := os.Open(file)
+	if err != nil {
+		return db, nil
+	}
+	defer f.Close()
+	if err := db.readTaxList(f); err != nil {
+		return nil, errors.Wrap(err, "records: open: when reading taxon list")
+	}
+
+	for _, tax := range db.tids {
+		sc := OpenScanner(path, tax.id)
+		if err := db.scan(sc); err != nil {
+			return nil, err
+		}
+		tax.changed = false
+	}
+	db.changed = false
+	return db, nil
 }
 
 // ReadTaxList reads taxon names from a file.
