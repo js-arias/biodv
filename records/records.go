@@ -518,6 +518,21 @@ func (rec *Record) encode(w *stanza.Writer) error {
 	return nil
 }
 
+func init() {
+	biodv.RegisterRec("biodv", biodv.RecDriver{open, nil, aboutBiodv})
+}
+
+// AboutBiodv returns a simple stated of the purpose of the driver.
+func aboutBiodv() string {
+	return "the default records database driver"
+}
+
+// Open opens a DB
+// as a biodv.Taxonomy.
+func open(path string) (biodv.RecDB, error) {
+	return Open(path)
+}
+
 // Open opens a DB
 // on a given path.
 func Open(path string) (*DB, error) {

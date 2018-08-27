@@ -44,8 +44,6 @@ func TestTaxFileName(t *testing.T) {
 	}
 }
 
-var _ biodv.RecDB = &DB{}
-
 func TestAdd(t *testing.T) {
 	db := &DB{tids: make(map[string]*taxon), ids: make(map[string]*Record)}
 

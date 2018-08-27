@@ -10,6 +10,7 @@ Usage:
 The commands are:
     db.drivers       list the database drivers
     help             display help information about biodv
+    rec.db.add       add records from an external DB
     rec.info         print record information
     rec.map          produce a map with georeferenced records
     rec.table        print a table of records
@@ -104,6 +105,35 @@ Command help displays help information for a command or a help topic.
 
 With no arguments it prints the list of available commands and help topics to
 the standard output.
+
+Add records from an external DB
+
+Usage:
+
+	biodv rec.db.add -e|--extern <database> [-g|--georef] [<name>]
+
+Command rec.db.add adds one or more records from the indicated database.
+Only the taxons on the local taxon database that are already matched to
+the external DB will be search. Only taxons at or below species rank will
+be searched.
+
+If the option -g or --georef  is defined, only records with valid
+georeferences will be added.
+
+Options are:
+
+    -e <database>
+    --extern <database>
+      A required parameter. If will set the external database.
+      To see the available databases use the command ‘db.drivers’.
+
+    -g
+    --georef
+      If set, only the records with a valid georefence will be added.
+
+    <name>
+      If set, only the records for the indicated taxon (and its
+      descendats) will be added.
 
 Print record information
 
