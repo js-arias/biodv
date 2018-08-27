@@ -89,5 +89,8 @@ func TestDBScan(t *testing.T) {
 		if v := rec.Value(biodv.RecExtern); v != d.extern {
 			t.Errorf("record %q, extern %q, want %q", rec.ID(), v, d.extern)
 		}
+		if v := rec.Value(biodv.RecDataset); v == "" {
+			t.Errorf("record %q, want dataset", rec.ID())
+		}
 	}
 }

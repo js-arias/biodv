@@ -466,7 +466,7 @@ func (rec *Record) Set(key, value string) error {
 		if v == value {
 			return nil
 		}
-		if v == "" {
+		if value == "" {
 			delete(rec.data, key)
 			rec.taxon.changed = true
 			return nil
@@ -685,7 +685,7 @@ func (db *DB) saveTaxList() (err error) {
 	sort.Strings(ls)
 
 	for _, v := range ls {
-		fmt.Printf("%s\n", v)
+		fmt.Fprintf(f, "%s\n", v)
 	}
 	return nil
 }
