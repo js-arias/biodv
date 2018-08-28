@@ -148,8 +148,8 @@ func printCollEvent(rc biodv.Record) {
 	if ev.Collector != "" {
 		fmt.Printf("\tCollector: %s\n", ev.Collector)
 	}
-	if ev.Country != "" {
-		fmt.Printf("\tCountry: %s\n", ev.Country)
+	if c := ev.CountryName(); c != "" {
+		fmt.Printf("\tCountry: %s\n", c)
 		if ev.State != "" {
 			fmt.Printf("\tState: %s\n", ev.State)
 		}

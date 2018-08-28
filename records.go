@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -288,49 +287,4 @@ func (b BasisOfRecord) String() string {
 		return basis[UnknownBasis]
 	}
 	return basis[i]
-}
-
-// A CollectionEvent stores the information
-// of a collection event for a record.
-type CollectionEvent struct {
-	Date      time.Time
-	Country   string
-	State     string
-	County    string
-	Locality  string
-	Collector string
-}
-
-// A Point is a georeferencenced point record.
-type Point struct {
-	Lat         float64
-	Lon         float64
-	Altitude    float64
-	Depth       float64
-	Source      string // source of the reference
-	Uncertainty uint   // georeference uncertainty in meters
-	Validation  string // source of the validation
-}
-
-// Maximum and minimum values for geographic coordinates
-const (
-	MinLat = -90
-	MaxLat = 90
-	MinLon = -180
-	MaxLon = 180
-)
-
-// InvalidPoint returns a new Point without a valid georeference.
-func InvalidPoint() Point {
-	return Point{Lat: 180, Lon: 360}
-}
-
-// IsValid returns true if a geographic point is valid.
-func (p Point) IsValid() bool {
-	if (p.Lon <= MaxLon) && (p.Lon > MinLon) {
-		if (p.Lat < MaxLat) && (p.Lat > MinLat) {
-			return true
-		}
-	}
-	return false
 }
