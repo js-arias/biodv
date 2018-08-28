@@ -10,6 +10,7 @@ package info
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -85,10 +86,9 @@ func print(txm biodv.Taxonomy, rc biodv.Record) error {
 	if err := printTaxon(txm, rc); err != nil {
 		return err
 	}
-	fmt.Printf("Record: %s:%s\n", dbName, rc.ID())
-	if cat := rc.Value(biodv.RecCatalog); cat != "" {
-		fmt.Printf("Catalogue ID: %s\n", cat)
-	}
+
+	ids(rc)
+
 	if org := rc.Value(biodv.RecOrganism); org != "" {
 		fmt.Printf("Organism ID: %s\n", org)
 	}
@@ -113,6 +113,8 @@ func print(txm biodv.Taxonomy, rc biodv.Record) error {
 	if c := rc.Value(biodv.RecComment); c != "" {
 		fmt.Printf("Comments:\n%s\n", c)
 	}
+
+	printValues(rc)
 	return nil
 }
 
@@ -170,5 +172,35 @@ func printCollEvent(rc biodv.Record) {
 	}
 	if geo.Validation != "" {
 		fmt.Printf("\tGeoreference validation: %s\n", geo.Validation)
+	}
+}
+
+func ids(rc biodv.Record) {
+	fmt.Printf("Record-ID: %s:%s\n", dbName, rc.ID())
+	v := rc.Value(biodv.RecExtern)
+	for _, e := range strings.Fields(v) {
+		fmt.Printf("\t\t%s\n", e)
+	}
+	if cat := rc.Value(biodv.RecCatalog); cat != "" {
+		fmt.Printf("Catalogue-ID: %s\n", cat)
+	}
+}
+
+func printValues(rc biodv.Record) {
+	for _, k := range rc.Keys() {
+		if k == biodv.RecOrganism || k == biodv.RecStage || k == biodv.RecSex {
+			continue
+		}
+		if k == biodv.RecDeterm || k == biodv.RecDataset || k == biodv.RecRef {
+			continue
+		}
+		if k == biodv.RecComment {
+			continue
+		}
+		v := rc.Value(k)
+		if v == "" {
+			continue
+		}
+		fmt.Printf("%s: %s\n", k, v)
 	}
 }
