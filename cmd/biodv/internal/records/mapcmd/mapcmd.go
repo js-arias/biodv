@@ -126,9 +126,10 @@ func register(c *cmdapp.Command) {
 	c.Flag.IntVar(&recSize, "s", 2, "")
 }
 
-var ids = make(map[string][]point)
+var ids map[string][]point
 
 func run(c *cmdapp.Command, args []string) error {
+	ids = make(map[string][]point)
 	if dbName == "" {
 		dbName = "biodv"
 	}

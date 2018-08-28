@@ -65,9 +65,10 @@ func register(c *cmdapp.Command) {
 	c.Flag.BoolVar(&georef, "g", false, "")
 }
 
-var ids = make(map[string][]biodv.Record)
+var ids map[string][]biodv.Record
 
 func run(c *cmdapp.Command, args []string) error {
+	ids = make(map[string][]biodv.Record)
 	if extName == "" {
 		return errors.Errorf("%s: an external database should be defined", c.Name())
 	}

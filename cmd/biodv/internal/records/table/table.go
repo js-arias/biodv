@@ -101,10 +101,12 @@ func register(c *cmdapp.Command) {
 	c.Flag.BoolVar(&nohead, "n", false, "")
 }
 
-var ids = make(map[string]bool)
-var rows = make(map[string][]string)
+var ids map[string]bool
+var rows map[string][]string
 
 func run(c *cmdapp.Command, args []string) error {
+	ids = make(map[string]bool)
+	rows = make(map[string][]string)
 	if dbName == "" {
 		dbName = "biodv"
 	}
