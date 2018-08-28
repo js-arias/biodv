@@ -72,6 +72,11 @@ func (db *DB) TaxRecs(id string) *biodv.RecScan {
 		sc.Add(nil, nil)
 		return sc
 	}
+	if !tax.sorted {
+		sortRecords(tax.recs)
+		tax.sorted = true
+	}
+
 	go func() {
 		for _, r := range tax.recs {
 			sc.Add(r, nil)
@@ -99,6 +104,7 @@ type taxon struct {
 	id      string
 	recs    []*Record
 	changed bool
+	sorted  bool
 }
 
 // Commit saves a list of taxon records
@@ -111,6 +117,11 @@ func (tax *taxon) commit() (err error) {
 	if len(tax.recs) == 0 {
 		tax.changed = false
 		return nil
+	}
+
+	if !tax.sorted {
+		sortRecords(tax.recs)
+		tax.sorted = true
 	}
 
 	taxFile := taxFileName(tax.id)
@@ -409,6 +420,7 @@ func (rec *Record) Set(key, value string) error {
 		}
 		rec.data[biodv.RecCatalog] = value
 		rec.taxon.changed = true
+		rec.taxon.sorted = false
 		db.ids[value] = rec
 	case biodv.RecExtern:
 		if value == "" {
@@ -518,6 +530,35 @@ func (rec *Record) encode(w *stanza.Writer) error {
 	return nil
 }
 
+// SortRecords sorts records
+// first from the catalog code,
+// and then by its ID.
+func sortRecords(ls []*Record) {
+	sort.Sort(sortRec(ls))
+}
+
+type sortRec []*Record
+
+func (s sortRec) Len() int      { return len(s) }
+func (s sortRec) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s sortRec) Less(i, j int) bool {
+	ci, cj := s[i].Value(biodv.RecCatalog), s[j].Value(biodv.RecCatalog)
+	if ci != "" {
+		if cj == "" {
+			return true
+		}
+		return ci < cj
+	}
+
+	// catalog code are always "less" than catalog-less records
+	if cj != "" {
+		return false
+	}
+
+	return s[i].ID() < s[j].ID()
+}
+
 func init() {
 	biodv.RegisterRec("biodv", biodv.RecDriver{open, nil, aboutBiodv})
 }
@@ -557,6 +598,7 @@ func Open(path string) (*DB, error) {
 			return nil, err
 		}
 		tax.changed = false
+		tax.sorted = true
 	}
 	db.changed = false
 	return db, nil
@@ -654,6 +696,7 @@ func (db *DB) Add(taxID, id, catalog string, basis biodv.BasisOfRecord, lat, lon
 		db.ids[catalog] = rec
 	}
 	tax.changed = true
+	tax.sorted = false
 	return rec, nil
 }
 
@@ -670,6 +713,7 @@ func (db *DB) Commit() error {
 			return errors.Wrap(err, "records: db: commit")
 		}
 	}
+	db.changed = false
 	return nil
 }
 
