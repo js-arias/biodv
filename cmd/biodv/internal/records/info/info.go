@@ -197,6 +197,9 @@ func printValues(rc biodv.Record) {
 		if k == biodv.RecComment {
 			continue
 		}
+		if k == biodv.RecExtern || k == biodv.RecCatalog {
+			continue
+		}
 		v := rc.Value(k)
 		if v == "" {
 			continue

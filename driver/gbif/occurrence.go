@@ -268,6 +268,9 @@ func (occ *occurrence) catalog() string {
 	}
 	cat := occ.CatalogNumber
 	coll := occ.CollectionCode
+	if x, ok := musAcronyms[occ.InstitutionCode]; ok {
+		occ.InstitutionCode = x
+	}
 	inst := occ.InstitutionCode
 
 	if inst == coll {

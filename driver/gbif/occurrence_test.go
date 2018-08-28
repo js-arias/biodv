@@ -58,6 +58,14 @@ func TestCatalog(t *testing.T) {
 		{&occurrence{InstitutionCode: "ISM", CollectionCode: "ISM-Mammals", CatalogNumber: "686867"}, "ISM-Mammals:686867"},
 		{&occurrence{InstitutionCode: "KPM", CollectionCode: "NF1", CatalogNumber: "KPM-NF1001895"}, "KPM-NF1001895"},
 		{&occurrence{InstitutionCode: "MHNG", CollectionCode: "Mammals housed at MHNG, Geneva", CatalogNumber: "MHNG-MAM-1112.098"}, "MHNG-MAM-1112.098"},
+		{&occurrence{InstitutionCode: "fcnym.unlp.edu.ar", CollectionCode: "mastozoologia", CatalogNumber: "292"}, "MLP:mastozoologia:292"},
+		{&occurrence{InstitutionCode: "Instituto de Investigación de Recursos Biológicos Alexander von Humboldt (IAvH)", CollectionCode: "IAvH-M", CatalogNumber: "IAvH-M-1114"}, "IAvH-M-1114"},
+		{&occurrence{InstitutionCode: "Pontificia Universidad Javeriana (PUJ)", CollectionCode: "MPUJ_MAMM", CatalogNumber: "1217"}, "PUJ:MPUJ_MAMM:1217"},
+		{&occurrence{InstitutionCode: "Royal Ontario Museum: ROM", CollectionCode: "Vertebrate Paleontology", CatalogNumber: "0390"}, "ROM:Vertebrate Paleontology:0390"},
+		{&occurrence{InstitutionCode: "Universidad del Valle", CollectionCode: "UV", CatalogNumber: "ColeccMamif:UV:7644"}, "UV:ColeccMamif:UV:7644"},
+		{&occurrence{InstitutionCode: "Universidad Industrial de Santander (UIS)", CollectionCode: "MHN-UIS", CatalogNumber: "UIS-MHN-M-0132"}, "UIS-MHN-M-0132"},
+		{&occurrence{InstitutionCode: "University of Alberta Museums", CollectionCode: "UAMZ", CatalogNumber: "M10837"}, "UAMZ:M10837"},
+		{&occurrence{InstitutionCode: "University of Guelph, Centre for Biodiversity Genomics", CollectionCode: "BIOUG", CatalogNumber: "ABMC260-05"}, "BIOUG:ABMC260-05"},
 	}
 
 	for _, d := range testData {
