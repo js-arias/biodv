@@ -6,7 +6,10 @@
 
 package biodv
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // A CollectionEvent stores the information
 // of a collection event for a record.
@@ -61,6 +64,32 @@ func (p Point) IsValid() bool {
 		}
 	}
 	return false
+}
+
+// Precision is the default precision level
+// when comparing georeferences.
+const GeoPrecision = 0.000001
+
+// Equal returns true if two points are equal
+// under a precision level.
+// Invalid points are considered equals.
+func (p Point) Equal(op Point, prec float64) bool {
+	if !p.IsValid() {
+		return !op.IsValid()
+	}
+
+	if !op.IsValid() {
+		return false
+	}
+
+	if prec == 0 {
+		prec = GeoPrecision
+	}
+
+	if math.Abs(p.Lat-op.Lat) > prec || math.Abs(p.Lon-op.Lon) > prec {
+		return false
+	}
+	return true
 }
 
 // Country is a valid ISO 3166-1 alpha-2 county code, as in

@@ -86,7 +86,18 @@ func (db *DB) TaxRecs(id string) *biodv.RecScan {
 	return sc
 }
 
+// Record returns an editable Record.
+func (db *DB) Record(id string) *Record {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil
+	}
+	return db.ids[id]
+}
+
 // RecID returns the record with a given ID.
+//
+// When using an editable DB prefer Record.
 func (db *DB) RecID(id string) (biodv.Record, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
@@ -281,10 +292,6 @@ func (rec *Record) SetCollEvent(event biodv.CollectionEvent) {
 	}
 }
 
-// Precision is the default precision level
-// when comparing georeferences.
-const Precision = 0.000001
-
 // SetGeoRef sets the values
 // of a georeference.
 // The prec parameter controls the precision
@@ -302,7 +309,7 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 	} else if !old.IsValid() {
 		storeLatLon(rec.data, geo.Lat, geo.Lon)
 		rec.taxon.changed = true
-	} else if math.Abs(geo.Lat-old.Lat) > prec || math.Abs(geo.Lon-old.Lon) > prec {
+	} else if !geo.Equal(old, prec) {
 		storeLatLon(rec.data, geo.Lat, geo.Lon)
 		rec.taxon.changed = true
 	}
@@ -640,7 +647,7 @@ func (db *DB) scan(sc *Scanner) error {
 			return err
 		}
 		rec.SetCollEvent(r.CollEvent())
-		rec.SetGeoRef(r.GeoRef(), Precision)
+		rec.SetGeoRef(r.GeoRef(), biodv.GeoPrecision)
 		keys := r.Keys()
 		for _, k := range keys {
 			if err := rec.Set(k, r.Value(k)); err != nil {

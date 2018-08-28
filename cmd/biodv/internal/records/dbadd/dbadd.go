@@ -123,7 +123,7 @@ func procTaxon(txm biodv.Taxonomy, ext biodv.RecDB, recs *records.DB, tax biodv.
 		return
 	}
 
-	eid := getExternID(tax)
+	eid := getExternID(tax.Value(biodv.TaxExtern))
 	if eid == "" {
 		procChildren(txm, ext, recs, tax)
 		return
@@ -178,10 +178,10 @@ func addRecord(recs *records.DB, tax biodv.Taxon, r biodv.Record) {
 	}
 
 	// if the catalog number is already in use,
-	// print a warning and ignore the catalog code.
+	// update the record with the new information.
 	if ot, _ := recs.RecID(cat); ot != nil {
-		fmt.Fprintf(os.Stderr, "warning: catalog code %q [(%s) on %s - %s] already in use [by %s - %s]\n", cat, eid, tax.Name(), r.Value(biodv.RecDataset), ot.Taxon(), ot.Value(biodv.RecDataset))
-		cat = ""
+		updateRecord(recs, r, tax)
+		return
 	}
 	geo := r.GeoRef()
 
@@ -191,7 +191,7 @@ func addRecord(recs *records.DB, tax biodv.Taxon, r biodv.Record) {
 		return
 	}
 	rec.SetCollEvent(r.CollEvent())
-	rec.SetGeoRef(r.GeoRef(), records.Precision)
+	rec.SetGeoRef(r.GeoRef(), biodv.GeoPrecision)
 	keys := r.Keys()
 	for _, k := range keys {
 		if k == biodv.RecCatalog {
@@ -211,6 +211,129 @@ func addRecord(recs *records.DB, tax biodv.Taxon, r biodv.Record) {
 	if err := rec.Set(biodv.RecExtern, eid); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when updating %q [%s]: %v\n", eid, tax.Name(), err)
 	}
+}
+
+// UpdateRecord updates record data,
+// if the record is already present in the database
+// (but with another ID).
+func updateRecord(recs *records.DB, r biodv.Record, tax biodv.Taxon) {
+	rec := recs.Record(r.Value(biodv.RecCatalog))
+	if rec == nil {
+		return
+	}
+	eid := getExternID(rec.Value(biodv.RecExtern))
+	updateCollEvent(rec, r)
+	updateGeoRef(rec, r)
+
+	comm := "Also found as " + extName + ":" + r.ID()
+	ds := extName + ":" + r.Value(biodv.RecDataset)
+	rd := rec.Value(biodv.RecDataset)
+	if rd != "" && ds != rd {
+		comm += " on " + ds + " dataset"
+	}
+
+	keys := r.Keys()
+	for _, k := range keys {
+		if k == biodv.RecCatalog {
+			continue
+		}
+		v := r.Value(k)
+
+		if k == biodv.RecComment {
+			c := rec.Value(k)
+			if c == "" {
+				c = v
+			} else if v != "" {
+				c = c + "\n" + v
+			}
+			if c == "" {
+				c = comm
+			} else {
+				c += "\n" + comm + "."
+			}
+			v = c
+		}
+
+		if v == "" {
+			continue
+		}
+		if k == biodv.RecDataset {
+			if rec.Value(biodv.RecDataset) != "" {
+				continue
+			}
+			v = extName + ":" + v
+		}
+
+		if err := rec.Set(k, v); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: when updating %q [%s]: %v\n", eid, tax.Name(), err)
+		}
+	}
+}
+
+func updateCollEvent(rec *records.Record, r biodv.Record) {
+	ev := r.CollEvent()
+	rev := rec.CollEvent()
+
+	if rev.Date.IsZero() {
+		rev.Date = ev.Date
+	}
+
+	if rev.Country == "" {
+		rev.Country = ev.Country
+	}
+
+	if rev.State == "" {
+		rev.State = ev.State
+	}
+
+	if rev.County == "" {
+		rev.County = ev.County
+	}
+
+	if rev.Locality == "" {
+		rev.Locality = ev.Locality
+	}
+
+	if rev.Collector == "" {
+		rev.Collector = ev.Collector
+	}
+	rec.SetCollEvent(rev)
+}
+
+func updateGeoRef(rec *records.Record, r biodv.Record) {
+	geo := r.GeoRef()
+	rg := rec.GeoRef()
+
+	if !rg.IsValid() {
+		rg.Lon = geo.Lon
+		rg.Lat = geo.Lat
+	}
+
+	if geo.Altitude > 0 && geo.Depth < 0 {
+		geo.Altitude = 0
+		geo.Depth = 0
+	}
+
+	if rg.Altitude == 0 {
+		rg.Altitude = geo.Altitude
+	}
+	if rg.Depth == 0 {
+		rg.Depth = geo.Depth
+	}
+
+	if rg.Source == "" {
+		rg.Source = geo.Source
+	}
+
+	if rg.Uncertainty == 0 {
+		rg.Uncertainty = geo.Uncertainty
+	}
+
+	if rg.Validation == "" {
+		rg.Validation = geo.Validation
+	}
+
+	rec.SetGeoRef(rg, biodv.GeoPrecision)
 }
 
 func procChildren(txm biodv.Taxonomy, ext biodv.RecDB, recs *records.DB, tax biodv.Taxon) {
@@ -235,9 +358,8 @@ func getRank(txm biodv.Taxonomy, tax biodv.Taxon) biodv.Rank {
 	return biodv.Unranked
 }
 
-func getExternID(tax biodv.Taxon) string {
-	ext := strings.Fields(tax.Value(biodv.TaxExtern))
-	for _, e := range ext {
+func getExternID(ext string) string {
+	for _, e := range strings.Fields(ext) {
 		i := strings.Index(e, ":")
 		if i <= 0 {
 			continue
