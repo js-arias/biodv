@@ -14,6 +14,7 @@ The commands are:
     rec.info         print record information
     rec.map          produce a map with georeferenced records
     rec.table        print a table of records
+    rec.validate     validate an specimen records database
     tax.add          add taxon names
     tax.catalog      print a taxonomic catalog
     tax.db.add       add taxons validated on an external DB
@@ -285,6 +286,16 @@ Options are:
     <name>
      If set, the table will be based on the indicated taxon. If the
      name is ambiguous, the ID of the ambigous taxa will be printed.
+
+Validate an specimen records database
+
+Usage:
+
+	biodv rec.validate
+
+Command rec.validate validates a records database. It is useful to test
+if a biodv database from a third party is correct. If there are no
+errors, it will finish silently.
 
 Stanza file format
 
