@@ -302,7 +302,7 @@ Get an specimen record value
 
 Usage:
 
-	biodv rec.value [-db <database>] [-k|--key <key>] <value>
+	biodv rec.value [-db <database>] [-k|--key <key>] <record>
 
 Command rec.value prints the value of a given key for the indicated
 specimen record. If no key is given, a list of available keys for the
@@ -321,7 +321,7 @@ Options are:
     --key <key>
       If set, the value of the indicated key will be printed.
 
-    <value>
+    <record>
       The ID of the record that will be searched. This parameter is
       required.
 

@@ -20,7 +20,7 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: "rec.value [-db <database>] [-k|--key <key>] <value>",
+	UsageLine: "rec.value [-db <database>] [-k|--key <key>] <record>",
 	Short:     "get an specimen record value",
 	Long: `
 Command rec.value prints the value of a given key for the indicated
@@ -40,7 +40,7 @@ Options are:
     --key <key>
       If set, the value of the indicated key will be printed.
 
-    <value>
+    <record>
       The ID of the record that will be searched. This parameter is
       required.
 	`,
