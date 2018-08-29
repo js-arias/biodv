@@ -13,4 +13,5 @@ import (
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/mapcmd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/table"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/validate"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/value"
 )

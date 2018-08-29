@@ -15,6 +15,7 @@ The commands are:
     rec.map          produce a map with georeferenced records
     rec.table        print a table of records
     rec.validate     validate an specimen records database
+    rec.value        get an specimen record value
     tax.add          add taxon names
     tax.catalog      print a taxonomic catalog
     tax.db.add       add taxons validated on an external DB
@@ -296,6 +297,33 @@ Usage:
 Command rec.validate validates a records database. It is useful to test
 if a biodv database from a third party is correct. If there are no
 errors, it will finish silently.
+
+Get an specimen record value
+
+Usage:
+
+	biodv rec.value [-db <database>] [-k|--key <key>] <value>
+
+Command rec.value prints the value of a given key for the indicated
+specimen record. If no key is given, a list of available keys for the
+indicated record will be given.
+
+Options are:
+
+    -db <database>
+    --db <database>
+      If set, the indicated database will be used to search the
+      indicated taxon.
+      To see the available databases use the command ‘db.drivers’.
+      The default biodv database on the current directory.
+
+    -k <key>
+    --key <key>
+      If set, the value of the indicated key will be printed.
+
+    <value>
+      The ID of the record that will be searched. This parameter is
+      required.
 
 Stanza file format
 
