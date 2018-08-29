@@ -127,9 +127,9 @@ func run(c *cmdapp.Command, args []string) error {
 	case "uncertainty":
 		fmt.Printf("%d\n", geo.Uncertainty)
 	case "altitude":
-		fmt.Printf("%f\n", geo.Altitude)
+		fmt.Printf("%d\n", geo.Altitude)
 	case "depth":
-		fmt.Printf("%f\n", geo.Depth)
+		fmt.Printf("%d\n", geo.Depth)
 	case "geosource":
 		fmt.Printf("%s\n", geo.Source)
 	case "validation":

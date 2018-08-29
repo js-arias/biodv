@@ -36,8 +36,8 @@ func (c CollectionEvent) CountryName() string {
 type Point struct {
 	Lat         float64
 	Lon         float64
-	Altitude    float64
-	Depth       float64
+	Altitude    uint   // in meters
+	Depth       uint   // in meters
 	Source      string // source of the reference
 	Uncertainty uint   // georeference uncertainty in meters
 	Validation  string // source of the validation

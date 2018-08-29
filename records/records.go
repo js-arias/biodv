@@ -12,7 +12,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -324,8 +323,8 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 			delete(rec.data, altitudeKey)
 			rec.taxon.changed = true
 		}
-	} else if math.Abs(old.Altitude-geo.Altitude) > prec {
-		rec.data[altitudeKey] = strconv.FormatFloat(geo.Altitude, 'f', -1, 64)
+	} else if geo.Altitude != old.Altitude {
+		rec.data[altitudeKey] = strconv.Itoa(int(geo.Altitude))
 		rec.taxon.changed = true
 	}
 
@@ -334,8 +333,8 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 			delete(rec.data, depthKey)
 			rec.taxon.changed = true
 		}
-	} else if math.Abs(old.Depth-geo.Depth) > prec {
-		rec.data[depthKey] = strconv.FormatFloat(geo.Depth, 'f', -1, 64)
+	} else if geo.Depth != old.Depth {
+		rec.data[depthKey] = strconv.Itoa(int(geo.Depth))
 		rec.taxon.changed = true
 	}
 

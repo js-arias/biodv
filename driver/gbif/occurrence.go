@@ -200,10 +200,15 @@ func (occ *occurrence) CollEvent() biodv.CollectionEvent {
 
 func (occ *occurrence) GeoRef() biodv.Point {
 	pt := biodv.InvalidPoint()
-	pt.Altitude = occ.Elevation
-	pt.Depth = occ.Depth
 
-	if occ.IsZero() {
+	if occ.Elevation > 0 && occ.Depth == 0 {
+		pt.Altitude = uint(occ.Elevation)
+	}
+	if occ.Depth < 0 && occ.Elevation == 0 {
+		pt.Depth = uint(occ.Depth)
+	}
+
+	if occ.isZero() {
 		return pt
 	}
 
@@ -301,7 +306,7 @@ func (occ *occurrence) catalog() string {
 // is marked for the occurrence,
 // or if any of latitude or longitude
 // is zero.
-func (occ *occurrence) IsZero() bool {
+func (occ *occurrence) isZero() bool {
 	for _, i := range occ.Issues {
 		if i == "ZERO_COORDINATE" {
 			return true

@@ -62,10 +62,10 @@ func (r recmap) CollEvent() biodv.CollectionEvent {
 
 func (r recmap) GeoRef() biodv.Point {
 	p := biodv.InvalidPoint()
-	alt, _ := strconv.ParseFloat(r[altitudeKey], 64)
-	dep, _ := strconv.ParseFloat(r[depthKey], 64)
-	p.Altitude = alt
-	p.Depth = dep
+	alt, _ := strconv.Atoi(r[altitudeKey])
+	dep, _ := strconv.Atoi(r[depthKey])
+	p.Altitude = uint(alt)
+	p.Depth = uint(dep)
 
 	v := strings.Fields(r[latlonKey])
 	if len(v) != 2 {
