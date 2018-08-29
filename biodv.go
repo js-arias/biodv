@@ -106,16 +106,16 @@ type Record interface {
 
 // Common keys used for Record.
 const (
-	RecRef       = "reference"  // A bibliographic reference
-	RecDataset   = "dataset"    // Source of the specimen data
-	RecCatalog   = "catalog"    // museum catalog number
-	RecDeterm    = "determiner" // the person who identified the specimen
-	RecExtern    = "extern"     // Extern IDs
-	RecComment   = "comment"    // A free text comment
-	RecOrganism  = "organism"   // An ID of the organism
-	RecSex       = "sex"        // Sex of the organism
-	RecStage     = "stage"      // Life stage of the organism
-	RecElevation = "elevation"  // Elevation of flying organism
+	RecRef      = "reference"  // A bibliographic reference
+	RecDataset  = "dataset"    // Source of the specimen data
+	RecCatalog  = "catalog"    // museum catalog number
+	RecDeterm   = "determiner" // the person who identified the specimen
+	RecExtern   = "extern"     // Extern IDs
+	RecComment  = "comment"    // A free text comment
+	RecOrganism = "organism"   // An ID of the organism
+	RecSex      = "sex"        // Sex of the organism
+	RecStage    = "stage"      // Life stage of the organism
+	RecAltitude = "altitude"   // Elevation of flying organism
 )
 
 // ParseDriverString separates a driver

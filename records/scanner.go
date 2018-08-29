@@ -62,9 +62,9 @@ func (r recmap) CollEvent() biodv.CollectionEvent {
 
 func (r recmap) GeoRef() biodv.Point {
 	p := biodv.InvalidPoint()
-	alt, _ := strconv.Atoi(r[altitudeKey])
+	elv, _ := strconv.Atoi(r[elevationKey])
 	dep, _ := strconv.Atoi(r[depthKey])
-	p.Altitude = uint(alt)
+	p.Elevation = uint(elv)
 	p.Depth = uint(dep)
 
 	v := strings.Fields(r[latlonKey])
@@ -97,7 +97,7 @@ func (r recmap) Keys() []string {
 		collectorKey:   true,
 		latlonKey:      true,
 		uncertaintyKey: true,
-		altitudeKey:    true,
+		elevationKey:   true,
 		depthKey:       true,
 		geosourceKey:   true,
 		validationKey:  true,
@@ -224,19 +224,19 @@ func (sc *Scanner) Scan() bool {
 		} else {
 			rec[dateKey] = t.Format(time.RFC3339)
 		}
-		alt, _ := strconv.ParseFloat(rec[altitudeKey], 64)
-		dep, _ := strconv.ParseFloat(rec[depthKey], 64)
-		if alt > 0 && dep < 0 {
-			alt = 0
+		elv, _ := strconv.Atoi(rec[elevationKey])
+		dep, _ := strconv.Atoi(rec[depthKey])
+		if elv > 0 && dep < 0 {
+			elv = 0
 			dep = 0
 		}
-		if alt > 0 {
-			rec[altitudeKey] = strconv.FormatFloat(alt, 'f', -1, 64)
+		if elv > 0 {
+			rec[elevationKey] = strconv.Itoa(elv)
 		} else {
-			delete(rec, altitudeKey)
+			delete(rec, elevationKey)
 		}
 		if dep < 0 {
-			rec[depthKey] = strconv.FormatFloat(dep, 'f', -1, 64)
+			rec[depthKey] = strconv.Itoa(dep)
 		} else {
 			delete(rec, depthKey)
 		}

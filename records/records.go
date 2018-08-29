@@ -225,7 +225,7 @@ const (
 	collectorKey   = "collector"
 	latlonKey      = "latlon"
 	uncertaintyKey = "uncertainty"
-	altitudeKey    = "altitude"
+	elevationKey   = "elevation"
 	depthKey       = "depth"
 	geosourceKey   = "geosource"
 	validationKey  = "validation"
@@ -313,18 +313,18 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 		rec.taxon.changed = true
 	}
 
-	if geo.Altitude > 0 && geo.Depth < 0 {
-		geo.Altitude = old.Altitude
+	if geo.Elevation > 0 && geo.Depth < 0 {
+		geo.Elevation = old.Elevation
 		geo.Depth = old.Depth
 	}
 
-	if geo.Altitude == 0 {
-		if rec.data[altitudeKey] != "" {
-			delete(rec.data, altitudeKey)
+	if geo.Elevation == 0 {
+		if rec.data[elevationKey] != "" {
+			delete(rec.data, elevationKey)
 			rec.taxon.changed = true
 		}
-	} else if geo.Altitude != old.Altitude {
-		rec.data[altitudeKey] = strconv.Itoa(int(geo.Altitude))
+	} else if geo.Elevation != old.Elevation {
+		rec.data[elevationKey] = strconv.Itoa(int(geo.Elevation))
 		rec.taxon.changed = true
 	}
 
@@ -397,7 +397,7 @@ func (rec *Record) Set(key, value string) error {
 		fallthrough
 	case uncertaintyKey:
 		fallthrough
-	case altitudeKey:
+	case elevationKey:
 		fallthrough
 	case depthKey:
 		fallthrough
@@ -522,7 +522,7 @@ func (rec *Record) encode(w *stanza.Writer) error {
 		collectorKey,
 		latlonKey,
 		uncertaintyKey,
-		altitudeKey,
+		elevationKey,
 		depthKey,
 		geosourceKey,
 		validationKey,

@@ -84,7 +84,7 @@ func run(c *cmdapp.Command, args []string) error {
 			"collector",
 			"latlon",
 			"uncertainty",
-			"altitude",
+			"elevation",
 			"depth",
 			"geosource",
 			"validation",
@@ -126,8 +126,8 @@ func run(c *cmdapp.Command, args []string) error {
 		}
 	case "uncertainty":
 		fmt.Printf("%d\n", geo.Uncertainty)
-	case "altitude":
-		fmt.Printf("%d\n", geo.Altitude)
+	case "elevation":
+		fmt.Printf("%d\n", geo.Elevation)
 	case "depth":
 		fmt.Printf("%d\n", geo.Depth)
 	case "geosource":

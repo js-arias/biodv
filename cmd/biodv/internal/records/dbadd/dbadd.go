@@ -309,13 +309,13 @@ func updateGeoRef(rec *records.Record, r biodv.Record) {
 		rg.Lat = geo.Lat
 	}
 
-	if geo.Altitude > 0 && geo.Depth < 0 {
-		geo.Altitude = 0
+	if geo.Elevation > 0 && geo.Depth < 0 {
+		geo.Elevation = 0
 		geo.Depth = 0
 	}
 
-	if rg.Altitude == 0 {
-		rg.Altitude = geo.Altitude
+	if rg.Elevation == 0 {
+		rg.Elevation = geo.Elevation
 	}
 	if rg.Depth == 0 {
 		rg.Depth = geo.Depth

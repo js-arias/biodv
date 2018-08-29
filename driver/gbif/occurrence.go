@@ -202,7 +202,7 @@ func (occ *occurrence) GeoRef() biodv.Point {
 	pt := biodv.InvalidPoint()
 
 	if occ.Elevation > 0 && occ.Depth == 0 {
-		pt.Altitude = uint(occ.Elevation)
+		pt.Elevation = uint(occ.Elevation)
 	}
 	if occ.Depth < 0 && occ.Elevation == 0 {
 		pt.Depth = uint(occ.Depth)
@@ -233,7 +233,7 @@ func (occ *occurrence) Keys() []string {
 		biodv.RecOrganism,
 		biodv.RecSex,
 		biodv.RecStage,
-		biodv.RecElevation,
+		biodv.RecAltitude,
 	}
 }
 
@@ -255,7 +255,7 @@ func (occ *occurrence) Value(key string) string {
 		return strings.ToLower(occ.Sex)
 	case biodv.RecStage:
 		return strings.ToLower(occ.LifeStage)
-	case biodv.RecElevation:
+	case biodv.RecAltitude:
 		return occ.MinimumDistanceAboveSurfaceInMeters
 	}
 	return ""
