@@ -10,6 +10,7 @@ Usage:
 The commands are:
     db.drivers       list the database drivers
     help             display help information about biodv
+    rec.add          add specimen records
     rec.db.add       add records from an external DB
     rec.info         print record information
     rec.map          produce a map with georeferenced records
@@ -108,6 +109,66 @@ Command help displays help information for a command or a help topic.
 
 With no arguments it prints the list of available commands and help topics to
 the standard output.
+
+Add specimen records
+
+Usage:
+
+	biodv rec.add [<file>..,]
+
+Command rec.add adds one or more records from the indicated files, or
+the standard input (if no file is defined) to the specimen records
+database. It assumes that the input file is a table with tab-delimited
+values. Recoginzed column names (and their accepted values) are:
+
+    id           the ID of the record.
+    taxon        name (or ID) of the taxon assigned to the specimen.
+    catalog      a catalog code, usually in the form
+                 <institution code>:<collection code>:<catalog number>.
+    basis        basis of record, it can be:
+                    unknown      if the basis is unknown
+                    preserved    if it is a preserved (museum)
+                                 specimen
+                    fossil       if it is a fossil (museum) specimen
+                    observation  if the record is based on a human
+                                 observation
+                    machine      if the record is based on a machine
+                                 sensor reading
+    date         the sampling date, it must be in the RFC3339 format,
+                 e.g. '2006-01-02T15:04:05Z07:00'
+    country      the country of the sample, a two letter ISO 3166-1
+                 alpha-2 code.
+    state        the state, province, or a similar principal country
+                 subdivision.
+    county       a secondary country subdivision.
+    locality     the locality of the sampling.
+    collector    the person who collect the sample.
+    latitude     geographic latitude of the record.
+    longitude    geographic longitude of the record.
+    geosource    source of the georeference.
+    validation   validation of the georeference.
+    uncertainty  georeference uncertainty in meters.
+    elevation    elevation over sea level, in meters.
+    depth        depth below sea level, in meters.
+    reference    a bibliographic reference.
+    dataset      source of the specimen record information.
+    determiner   the person who identified the specimen.
+    organism     the organism ID.
+    stage        the growth stage of the organism.
+    sex          sex of the organism.
+    altitude     in flying specimens, the altitude above ground when
+                 the observation was made.
+
+If no ID is defined, but a catalog code is given, then the catalog code
+will be used as the record ID.
+
+Other values are accepted and stored as given.
+
+Options are:
+
+    <file>
+      One or more files to be processed by rec.add. If no file is given,
+      the data will be read from the standard input.
 
 Add records from an external DB
 
