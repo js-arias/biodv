@@ -13,6 +13,7 @@ The commands are:
     rec.db.add       add records from an external DB
     rec.info         print record information
     rec.map          produce a map with georeferenced records
+    rec.set          set an specimen record value
     rec.table        print a table of records
     rec.validate     validate an specimen records database
     rec.value        get an specimen record value
@@ -230,6 +231,71 @@ Options are:
     <name>
      If set, the map will be based on the indicated taxon. If the
      name is ambiguous, the ID of the ambigous taxa will be printed.
+
+Set an specimen record value
+
+Usage:
+
+	biodv rec.set -k|--key <key> [-v|--value <value>] <record>
+
+Command rec.set sets the value of a given key for the indicated record,
+overwritting any previous value. If the value is empty, the content of
+the key will be eliminated.
+
+Command rec.set can be used to set almost any key value, except taxon
+assignation, and the geographic point of the record,
+
+Except for some standard keys, no content of the values will be evaluated
+by the program or the database.
+
+Options are:
+
+    - k <key>
+    --key <key>
+      A key, a required parameter. Keys must be in lower case and
+      without spaces  (it will be reformatted to lower case, and spaces
+      between words replaced by the dash ‘-’ character). Any key can
+      be stored, but the recognized keys (and their expected values)
+      are:
+        catalog     a catalog code, usually in the form
+                    <institution code>:<collection code>:<catalog number>.
+        basis       basis of record, it can be:
+                      unknown      if the basis is unknown
+                      preserved    if it is a preserved (museum)
+                                   specimen
+                      fossil       if it is a fossil (museum) specimen
+                      observation  if the record is based on a human
+                                   observation
+                      machine      if the record is based on a machine
+                                   sensor reading
+        date        the sampling date, it must be in the RFC3339 format,
+                    e.g. '2006-01-02T15:04:05Z07:00'
+        country     the country of the sample, a two letter ISO 3166-1
+                    alpha-2 code.
+        state       the state, province, or a similar principal country
+                    subdivision.
+        county      a secondary country subdivision.
+        locality    the locality of the sampling.
+        collector   the person who collect the sample.
+        elevation   elevation over sea level, in meters
+        depth       depth below sea level, in meters
+        reference   a bibliographic reference
+        dataset     source of the specimen record information
+        determiner  the person who identified the specimen
+        organism    the organism ID
+        stage       the growth stage of the organism
+        sex         sex of the organism
+        altitude    in flying specimens, the altitude above ground when
+                    the observation was made
+      For a set of available keys of a given specimen, use rec.value.
+
+    -v <value>
+    --value <value>
+      The value to set. If no value is defined, or an empty string is
+      given, the value on that key will be deleted.
+
+    <record>
+      The record to be set.
 
 Print a table of records
 

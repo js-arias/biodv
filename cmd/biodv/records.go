@@ -11,6 +11,7 @@ import (
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/dbadd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/info"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/mapcmd"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/set"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/table"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/validate"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/value"
