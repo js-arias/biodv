@@ -338,6 +338,9 @@ Options are:
         county      a secondary country subdivision.
         locality    the locality of the sampling.
         collector   the person who collect the sample.
+        z           in flying or oceanic specimens, the distance to
+                    groud (depth as negative) when the sampling was
+                    made.
         elevation   elevation over sea level, in meters
         depth       depth below sea level, in meters
         reference   a bibliographic reference

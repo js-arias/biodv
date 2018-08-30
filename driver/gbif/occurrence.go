@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/js-arias/biodv"
+	"github.com/js-arias/biodv/geography"
 
 	"github.com/pkg/errors"
 )
@@ -184,16 +185,32 @@ func (occ *occurrence) CollEvent() biodv.CollectionEvent {
 	if t.IsZero() {
 		t, _ = time.Parse("2006-01-02T15:04:05.000-0700", occ.OccurrenceDate)
 	}
+	adm := geography.Admin{
+		Country: occ.CountryCode,
+		State:   strings.Join(strings.Fields(occ.StateProvince), " "),
+		County:  strings.Join(strings.Fields(occ.County), " "),
+	}
+	if geography.Country(adm.Country) == "" {
+		adm = geography.Admin{}
+	}
+
 	cl := biodv.CollectionEvent{
 		Date:      t,
-		Country:   occ.CountryCode,
-		State:     strings.Join(strings.Fields(occ.StateProvince), " "),
-		County:    strings.Join(strings.Fields(occ.County), " "),
+		Admin:     adm,
 		Locality:  strings.Join(strings.Fields(occ.Locality), " "),
 		Collector: strings.Join(strings.Fields(occ.CollectorName), " "),
 	}
-	if cl.State == "" && cl.County == "" {
+	if cl.State() == "" && cl.County() == "" {
 		cl.Locality = strings.Join(strings.Fields(occ.VerbatimLocality), " ")
+	}
+
+	dpt := -int(occ.Depth)
+	alt, _ := strconv.Atoi(occ.MinimumDistanceAboveSurfaceInMeters)
+	if dpt < 0 && alt == 0 {
+		cl.Z = dpt
+	}
+	if alt > 0 && dpt == 0 {
+		cl.Z = alt
 	}
 	return cl
 }
@@ -233,7 +250,6 @@ func (occ *occurrence) Keys() []string {
 		biodv.RecOrganism,
 		biodv.RecSex,
 		biodv.RecStage,
-		biodv.RecAltitude,
 	}
 }
 
@@ -255,8 +271,6 @@ func (occ *occurrence) Value(key string) string {
 		return strings.ToLower(occ.Sex)
 	case biodv.RecStage:
 		return strings.ToLower(occ.LifeStage)
-	case biodv.RecAltitude:
-		return occ.MinimumDistanceAboveSurfaceInMeters
 	}
 	return ""
 }

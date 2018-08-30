@@ -18,6 +18,7 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/encoding/stanza"
+	"github.com/js-arias/biodv/geography"
 
 	"github.com/pkg/errors"
 )
@@ -50,13 +51,17 @@ func (r recmap) Basis() biodv.BasisOfRecord {
 
 func (r recmap) CollEvent() biodv.CollectionEvent {
 	t, _ := time.Parse(time.RFC3339, r[dateKey])
+	z, _ := strconv.Atoi(r[zKey])
 	return biodv.CollectionEvent{
-		Date:      t,
-		Country:   r[countryKey],
-		State:     r[stateKey],
-		County:    r[countyKey],
+		Date: t,
+		Admin: geography.Admin{
+			Country: r[countryKey],
+			State:   r[stateKey],
+			County:  r[countyKey],
+		},
 		Locality:  r[localityKey],
 		Collector: r[collectorKey],
+		Z:         z,
 	}
 }
 
@@ -101,6 +106,7 @@ func (r recmap) Keys() []string {
 		depthKey:       true,
 		geosourceKey:   true,
 		validationKey:  true,
+		zKey:           true,
 	}
 	for k := range r {
 		if mp[k] {
@@ -223,6 +229,19 @@ func (sc *Scanner) Scan() bool {
 			delete(rec, dateKey)
 		} else {
 			rec[dateKey] = t.Format(time.RFC3339)
+		}
+		if c := geography.Country(rec[countryKey]); c != "" {
+			rec[countryKey] = strings.ToUpper(c)
+		} else {
+			delete(rec, countryKey)
+			delete(rec, stateKey)
+			delete(rec, countyKey)
+		}
+		z, _ := strconv.Atoi(rec[zKey])
+		if z != 0 {
+			rec[zKey] = strconv.Itoa(z)
+		} else {
+			delete(rec, zKey)
 		}
 		elv, _ := strconv.Atoi(rec[elevationKey])
 		dep, _ := strconv.Atoi(rec[depthKey])

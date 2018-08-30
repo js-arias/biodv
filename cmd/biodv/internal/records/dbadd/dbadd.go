@@ -278,16 +278,16 @@ func updateCollEvent(rec *records.Record, r biodv.Record) {
 		rev.Date = ev.Date
 	}
 
-	if rev.Country == "" {
-		rev.Country = ev.Country
+	if rev.Country() == "" {
+		rev.Admin.Country = ev.Admin.Country
 	}
 
-	if rev.State == "" {
-		rev.State = ev.State
+	if rev.State() == "" {
+		rev.Admin.State = ev.State()
 	}
 
-	if rev.County == "" {
-		rev.County = ev.County
+	if rev.County() == "" {
+		rev.Admin.County = ev.County()
 	}
 
 	if rev.Locality == "" {
@@ -297,6 +297,11 @@ func updateCollEvent(rec *records.Record, r biodv.Record) {
 	if rev.Collector == "" {
 		rev.Collector = ev.Collector
 	}
+
+	if rev.Z == 0 {
+		rev.Z = ev.Z
+	}
+
 	rec.SetCollEvent(rev)
 }
 

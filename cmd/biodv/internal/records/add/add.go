@@ -18,6 +18,7 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
+	"github.com/js-arias/biodv/geography"
 	"github.com/js-arias/biodv/records"
 
 	"github.com/pkg/errors"
@@ -205,15 +206,20 @@ func read(recs *records.DB, in io.Reader) error {
 					ev.Date, _ = time.Parse(time.RFC3339, row[c])
 				}
 			case "country":
-				ev.Country = row[c]
+				if cn := geography.Country(row[c]); cn != "" {
+					ev.Admin.Country = strings.ToUpper(row[c])
+				}
 			case "state":
-				ev.State = row[c]
+				ev.Admin.State = row[c]
 			case "county":
-				ev.County = row[c]
+				ev.Admin.County = row[c]
 			case "locality":
 				ev.Locality = row[c]
 			case "collector":
 				ev.Collector = row[c]
+			case "z":
+				z, _ := strconv.Atoi(row[c])
+				ev.Z = z
 			case "latitude", "longitude":
 			case "elevation":
 				elv, _ := strconv.Atoi(row[c])

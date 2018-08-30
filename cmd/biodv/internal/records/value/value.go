@@ -82,6 +82,7 @@ func run(c *cmdapp.Command, args []string) error {
 			"county",
 			"locality",
 			"collector",
+			"z",
 			"latlon",
 			"uncertainty",
 			"elevation",
@@ -109,15 +110,17 @@ func run(c *cmdapp.Command, args []string) error {
 	case "date":
 		fmt.Printf("%v\n", ev.Date.Format(time.RFC3339))
 	case "country":
-		fmt.Printf("%s\n", ev.CountryName())
+		fmt.Printf("%s\n", ev.Country())
 	case "state":
-		fmt.Printf("%s\n", ev.State)
+		fmt.Printf("%s\n", ev.State())
 	case "county":
-		fmt.Printf("%s\n", ev.County)
+		fmt.Printf("%s\n", ev.County())
 	case "locality":
 		fmt.Printf("%s\n", ev.Locality)
 	case "collector":
 		fmt.Printf("%s\n", ev.Collector)
+	case "z":
+		fmt.Printf("%d\n", ev.Z)
 	case "latlon":
 		if geo.IsValid() {
 			fmt.Printf("%f %f\n", geo.Lat, geo.Lon)

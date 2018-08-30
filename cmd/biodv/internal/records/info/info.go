@@ -148,17 +148,20 @@ func printCollEvent(rc biodv.Record) {
 	if ev.Collector != "" {
 		fmt.Printf("\tCollector: %s\n", ev.Collector)
 	}
-	if c := ev.CountryName(); c != "" {
+	if c := ev.Country(); c != "" {
 		fmt.Printf("\tCountry: %s\n", c)
-		if ev.State != "" {
-			fmt.Printf("\tState: %s\n", ev.State)
+		if s := ev.State(); s != "" {
+			fmt.Printf("\tState: %s\n", s)
 		}
-		if ev.County != "" {
-			fmt.Printf("\tCounty: %s\n", ev.County)
+		if t := ev.County(); t != "" {
+			fmt.Printf("\tCounty: %s\n", t)
 		}
 	}
 	if ev.Locality != "" {
 		fmt.Printf("\tLocality: %s\n", ev.Locality)
+	}
+	if ev.Z != 0 {
+		fmt.Printf("\tZ-val: %d\n", ev.Z)
 	}
 
 	geo := rc.GeoRef()

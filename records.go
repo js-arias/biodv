@@ -11,6 +11,9 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/js-arias/biodv/geography"
 
 	"github.com/pkg/errors"
 )
@@ -287,4 +290,42 @@ func (b BasisOfRecord) String() string {
 		return basis[UnknownBasis]
 	}
 	return basis[i]
+}
+
+// A CollectionEvent stores the information
+// of a collection event for a record.
+type CollectionEvent struct {
+	Date      time.Time
+	Admin     geography.Admin
+	Locality  string
+	Collector string
+
+	// Z is the z-coordinate,
+	// in meters
+	// for altitude
+	// or depth (as negative)
+	// in which an flying
+	// or an oceanic specimen is sampled.
+	Z int
+}
+
+// Country returns the country name
+// of the collection event.
+func (c CollectionEvent) Country() string {
+	return geography.Country(c.Admin.Country)
+}
+
+// State returns the first administrative division
+// of a country,
+// e.g. a US state,
+// for a collection event.
+func (c CollectionEvent) State() string {
+	return c.Admin.State
+}
+
+// County returns the second administrative division
+// of a country,
+// for a collection event.
+func (c CollectionEvent) County() string {
+	return c.Admin.County
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
+	"github.com/js-arias/biodv/geography"
 	"github.com/js-arias/biodv/records"
 
 	"github.com/pkg/errors"
@@ -63,6 +64,9 @@ Options are:
         county      a secondary country subdivision.
         locality    the locality of the sampling.
         collector   the person who collect the sample.
+        z           in flying or oceanic specimens, the distance to
+                    groud (depth as negative) when the sampling was
+                    made.
         elevation   elevation over sea level, in meters
         depth       depth below sea level, in meters
         reference   a bibliographic reference
@@ -144,25 +148,35 @@ func setRec(rec *records.Record) error {
 		}
 		rec.SetCollEvent(ev)
 	case "country":
-		ev.Country = ""
+		ev.Admin.Country = ""
 		if value != "" {
-			if len(value) != 2 {
+			if geography.Country(value) == "" {
 				return errors.New("invalid country code")
 			}
-			ev.Country = value
+			ev.Admin.Country = strings.ToUpper(value)
 		}
 		rec.SetCollEvent(ev)
 	case "state":
-		ev.State = value
+		ev.Admin.State = value
 		rec.SetCollEvent(ev)
 	case "county":
-		ev.State = value
+		ev.Admin.County = value
 		rec.SetCollEvent(ev)
 	case "locality":
-		ev.State = value
+		ev.Locality = value
 		rec.SetCollEvent(ev)
 	case "collector":
-		ev.State = value
+		ev.Collector = value
+		rec.SetCollEvent(ev)
+	case "z":
+		ev.Z = 0
+		if value != "" {
+			z, err := strconv.Atoi(value)
+			if err != nil {
+				return errors.Wrap(err, "invalid z value")
+			}
+			ev.Z = z
+		}
 		rec.SetCollEvent(ev)
 	case "elevation":
 		geo.Elevation = 0

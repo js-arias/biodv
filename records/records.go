@@ -229,6 +229,7 @@ const (
 	depthKey       = "depth"
 	geosourceKey   = "geosource"
 	validationKey  = "validation"
+	zKey           = "z"
 )
 
 // SetCollEvent sets the values
@@ -245,29 +246,32 @@ func (rec *Record) SetCollEvent(event biodv.CollectionEvent) {
 		rec.taxon.changed = true
 	}
 
-	if old.Country != event.Country {
-		if event.Country == "" {
+	if old.Country() != event.Country() {
+		if event.Country() == "" {
 			delete(rec.data, countryKey)
-		} else {
-			rec.data[countryKey] = event.Country
+			delete(rec.data, stateKey)
+			delete(rec.data, countyKey)
+			rec.taxon.changed = true
+		} else if event.Country() != "" {
+			rec.data[countryKey] = strings.ToUpper(event.Admin.Country)
+			rec.taxon.changed = true
 		}
-		rec.taxon.changed = true
 	}
 
-	if old.State != event.State {
-		if event.State == "" {
+	if old.Admin.State != event.Admin.State && event.Country() != "" {
+		if event.State() == "" {
 			delete(rec.data, stateKey)
 		} else {
-			rec.data[stateKey] = event.State
+			rec.data[stateKey] = event.State()
 		}
 		rec.taxon.changed = true
 	}
 
-	if old.County != event.County {
-		if event.County == "" {
+	if old.Admin.County != event.Admin.County && event.Country() != "" {
+		if event.County() == "" {
 			delete(rec.data, countyKey)
 		} else {
-			rec.data[countyKey] = event.County
+			rec.data[countyKey] = event.County()
 		}
 		rec.taxon.changed = true
 	}
@@ -288,6 +292,14 @@ func (rec *Record) SetCollEvent(event biodv.CollectionEvent) {
 			rec.data[collectorKey] = event.Collector
 		}
 		rec.taxon.changed = true
+	}
+
+	if old.Z != event.Z {
+		if event.Z == 0 {
+			delete(rec.data, zKey)
+		} else {
+			rec.data[zKey] = strconv.Itoa(event.Z)
+		}
 	}
 }
 
@@ -392,6 +404,8 @@ func (rec *Record) Set(key, value string) error {
 	case localityKey:
 		fallthrough
 	case collectorKey:
+		fallthrough
+	case zKey:
 		fallthrough
 	case latlonKey:
 		fallthrough
@@ -520,6 +534,7 @@ func (rec *Record) encode(w *stanza.Writer) error {
 		countyKey,
 		localityKey,
 		collectorKey,
+		zKey,
 		latlonKey,
 		uncertaintyKey,
 		elevationKey,

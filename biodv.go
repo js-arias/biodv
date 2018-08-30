@@ -115,7 +115,6 @@ const (
 	RecOrganism = "organism"   // An ID of the organism
 	RecSex      = "sex"        // Sex of the organism
 	RecStage    = "stage"      // Life stage of the organism
-	RecAltitude = "altitude"   // Elevation of flying organism
 )
 
 // ParseDriverString separates a driver
