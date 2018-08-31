@@ -125,6 +125,32 @@ func (db *DB) Move(id, taxID string) error {
 	return nil
 }
 
+// Delete removes a record from the records database.
+func (db *DB) Delete(id string) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return
+	}
+	rec := db.ids[id]
+	if rec == nil {
+		return
+	}
+
+	tax := rec.taxon
+
+	// remove all IDs
+	ext := strings.Fields(rec.data[biodv.RecExtern])
+	for _, e := range ext {
+		delete(db.ids, e)
+	}
+	if cat := rec.data[biodv.RecCatalog]; cat != "" {
+		delete(db.ids, cat)
+	}
+	delete(db.ids, rec.ID())
+
+	tax.removeRecord(rec)
+}
+
 // Record returns an editable Record.
 func (db *DB) Record(id string) *Record {
 	id = strings.TrimSpace(id)

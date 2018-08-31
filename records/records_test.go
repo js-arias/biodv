@@ -164,6 +164,43 @@ func TestMove(t *testing.T) {
 	}
 }
 
+func TestDelete(t *testing.T) {
+	db := &DB{tids: make(map[string]*taxon), ids: make(map[string]*Record)}
+	for _, d := range testData {
+		_, err := db.Add(d.taxon, d.id, "", d.basis, d.lat, d.lon)
+		if err != nil {
+			t.Errorf("when adding %q: %v", d.id, err)
+		}
+	}
+
+	id := "Felis concolor couguar:1"
+	db.Delete(id)
+
+	if rec, _ := db.RecID(id); rec != nil {
+		t.Errorf("record %q not deleted", id)
+	}
+
+	sc := db.TaxRecs("Felis concolor couguar")
+	ok := false
+	i := 0
+	for sc.Scan() {
+		rec := sc.Record()
+		if rec.ID() == id {
+			ok = true
+		}
+		i++
+	}
+	if err := sc.Err(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if ok {
+		t.Errorf("record %q already on taxon %q", id, "Felis concolor couguar")
+	}
+	if i != 0 {
+		t.Errorf("%d records on taxon %q, want 0", i, "Felis concolor couguar")
+	}
+}
+
 var taxBlob = `
 
 Struthio camelus
