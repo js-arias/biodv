@@ -13,6 +13,7 @@ The commands are:
     rec.add          add specimen records
     rec.assign       change taxon assignment of an specimen record
     rec.db.add       add records from an external DB
+    rec.del          eliminate an specimen record from the database
     rec.georef       set the georeference of an specimen record
     rec.info         print record information
     rec.map          produce a map with georeferenced records
@@ -226,6 +227,19 @@ Options are:
     <name>
       If set, only the records for the indicated taxon (and its
       descendats) will be added.
+
+Eliminate an specimen record from the database
+
+Usage:
+
+	biodv rec.del <record>
+
+Command rec.del removes the indicated specimen record from the database.
+
+Options are:
+
+    <name>
+      The specimen record to be deleted.
 
 Set the georeference of an specimen record
 
