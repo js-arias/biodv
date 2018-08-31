@@ -67,15 +67,12 @@ Options are:
                     groud (depth as negative) when the sampling was
                     made.
         elevation   elevation over sea level, in meters
-        depth       depth below sea level, in meters
         reference   a bibliographic reference
         dataset     source of the specimen record information
         determiner  the person who identified the specimen
         organism    the organism ID
         stage       the growth stage of the organism
         sex         sex of the organism
-        altitude    in flying specimens, the altitude above ground when
-                    the observation was made
       For a set of available keys of a given specimen, use rec.value.
 
     -v <value>

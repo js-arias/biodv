@@ -55,13 +55,14 @@ values. Recoginzed column names (and their accepted values) are:
     county       a secondary country subdivision.
     locality     the locality of the sampling.
     collector    the person who collect the sample.
+    z            in flying or oceanic specimens, the distance to groud
+                 (depth as negative) when the sampling was made.
     latitude     geographic latitude of the record.
     longitude    geographic longitude of the record.
     geosource    source of the georeference.
     validation   validation of the georeference.
     uncertainty  georeference uncertainty in meters.
     elevation    elevation over sea level, in meters.
-    depth        depth below sea level, in meters.
     reference    a bibliographic reference.
     dataset      source of the specimen record information.
     determiner   the person who identified the specimen.
