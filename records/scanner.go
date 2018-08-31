@@ -286,10 +286,9 @@ func (sc *Scanner) Scan() bool {
 }
 
 func storeLatLon(rec map[string]string, lat, lon float64) {
-	delete(rec, latlonKey)
-	if lat != 0 && lat > biodv.MinLat && lat < biodv.MaxLat {
-		if lon != 0 && lon > biodv.MinLon && lon <= biodv.MaxLon {
-			rec[latlonKey] = fmt.Sprintf("%f %f", lat, lon)
-		}
+	if !geography.IsValidCoord(lat, lon) {
+		delete(rec, latlonKey)
+		return
 	}
+	rec[latlonKey] = fmt.Sprintf("%f %f", lat, lon)
 }

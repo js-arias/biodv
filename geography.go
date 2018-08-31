@@ -6,7 +6,11 @@
 
 package biodv
 
-import "math"
+import (
+	"math"
+
+	"github.com/js-arias/biodv/geography"
+)
 
 // A Point is a georeferencenced point record.
 type Point struct {
@@ -19,14 +23,6 @@ type Point struct {
 	Validation  string // source of the validation
 }
 
-// Maximum and minimum values for geographic coordinates
-const (
-	MinLat = -90
-	MaxLat = 90
-	MinLon = -180
-	MaxLon = 180
-)
-
 // InvalidPoint returns a new Point without a valid georeference.
 func InvalidPoint() Point {
 	return Point{Lat: 180, Lon: 360}
@@ -34,12 +30,7 @@ func InvalidPoint() Point {
 
 // IsValid returns true if a geographic point is valid.
 func (p Point) IsValid() bool {
-	if (p.Lon <= MaxLon) && (p.Lon > MinLon) {
-		if (p.Lat < MaxLat) && (p.Lat > MinLat) {
-			return true
-		}
-	}
-	return false
+	return geography.IsValidCoord(p.Lat, p.Lon)
 }
 
 // Precision is the default precision level
@@ -50,11 +41,11 @@ const GeoPrecision = 0.000001
 // under a precision level.
 // Invalid points are considered equals.
 func (p Point) Equal(op Point, prec float64) bool {
-	if !p.IsValid() {
-		return !op.IsValid()
+	if !geography.IsValidCoord(p.Lat, p.Lon) {
+		return !geography.IsValidCoord(op.Lat, op.Lon)
 	}
 
-	if !op.IsValid() {
+	if !geography.IsValidCoord(op.Lat, op.Lon) {
 		return false
 	}
 

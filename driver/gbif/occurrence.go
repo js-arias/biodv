@@ -228,12 +228,8 @@ func (occ *occurrence) GeoRef() biodv.Point {
 	if occ.isZero() {
 		return pt
 	}
-
-	if occ.DecimalLatitude > biodv.MinLat && occ.DecimalLatitude <= biodv.MaxLat {
+	if geography.IsValidCoord(occ.DecimalLatitude, occ.DecimalLongitude) {
 		pt.Lat = occ.DecimalLatitude
-	}
-
-	if occ.DecimalLongitude > biodv.MinLon && occ.DecimalLongitude <= biodv.MaxLon {
 		pt.Lon = occ.DecimalLongitude
 	}
 	pt.Source = occ.GeoreferenceSources
