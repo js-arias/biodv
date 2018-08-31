@@ -12,6 +12,7 @@ The commands are:
     help             display help information about biodv
     rec.add          add specimen records
     rec.db.add       add records from an external DB
+    rec.georef       set the georeference of an specimen record
     rec.info         print record information
     rec.map          produce a map with georeferenced records
     rec.set          set an specimen record value
@@ -200,6 +201,67 @@ Options are:
       If set, only the records for the indicated taxon (and its
       descendats) will be added.
 
+Set the georeference of an specimen record
+
+Usage:
+
+	biodv rec.georef [-lat|--latitude <value>]
+		[-lon|--longitude <value>] [-u|--uncertainty <value>]
+		[-e|--elevation <value>] [-s|--source <value>]
+		[-v|--validation <value>] [-r|--remove] <record>
+
+Command rec.georef sets the georeference of the specified specimen
+record. Options are used to set particular values. If they left empty,
+they are ignored. -lat or --latitude option and -lon or--longitude
+options should be always defined as a pair.
+
+To eliminate a geographic georeference use the option -r or --remove
+option.
+
+To eliminate an string value (-s, or --source, and -v, or --validation,
+options, use '-' as value.
+
+Latitude and longitude should be defined using decimal points, and signs
+to indicate the hemisphere (negatives for southern and western
+hemispheres).
+
+Options are:
+
+    -lat <value>
+    --latitude <value>
+      Set the latitude of the record, with decimal points. If defined,
+      it should be paired with -lon or --longitude option.
+
+    -lon <value>
+    --longitude <value>
+      Set the longitude of the record, with decimal points. If defined,
+      it should be paired with -lat or --latitude option.
+
+    -e <value>
+    --elevation <value>
+      Elevation above sea level, in meters.
+
+    -u <value>
+    --uncertainty <value>
+      The uncertainty of the georeference, in meters.
+
+    -s <value>
+    --source <value>
+      An ID or a description of the source of the georeference, for
+      example a GPS device, or a gazetteer service.
+
+    -v <value>
+    --validation <value>
+      An ID or a description of a validation of the georeference, if
+      any.
+
+    -r
+    --remove
+      If set, the latitude and longitude pair of the record will be removed.
+
+    <record>
+      The record to be set.
+
 Print record information
 
 Usage:
@@ -305,14 +367,15 @@ overwritting any previous value. If the value is empty, the content of
 the key will be eliminated.
 
 Command rec.set can be used to set almost any key value, except taxon
-assignation, and the geographic point of the record,
+assignation, and the geographic point of the record. To set a geographic
+point use set.georef.
 
 Except for some standard keys, no content of the values will be evaluated
 by the program or the database.
 
 Options are:
 
-    - k <key>
+    -k <key>
     --key <key>
       A key, a required parameter. Keys must be in lower case and
       without spaces  (it will be reformatted to lower case, and spaces
@@ -342,7 +405,6 @@ Options are:
         z           in flying or oceanic specimens, the distance to
                     groud (depth as negative) when the sampling was
                     made.
-        elevation   elevation over sea level, in meters
         reference   a bibliographic reference
         dataset     source of the specimen record information
         determiner  the person who identified the specimen

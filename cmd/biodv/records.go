@@ -10,6 +10,7 @@ import (
 	// initialize records sub-commands
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/add"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/dbadd"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/georef"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/info"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/mapcmd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/set"

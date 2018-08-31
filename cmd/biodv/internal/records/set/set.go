@@ -29,14 +29,15 @@ overwritting any previous value. If the value is empty, the content of
 the key will be eliminated.
 
 Command rec.set can be used to set almost any key value, except taxon
-assignation, and the geographic point of the record,
+assignation, and the geographic point of the record. To set a geographic
+point use set.georef.
 
 Except for some standard keys, no content of the values will be evaluated
 by the program or the database.
 
 Options are:
 
-    - k <key>
+    -k <key>
     --key <key>
       A key, a required parameter. Keys must be in lower case and
       without spaces  (it will be reformatted to lower case, and spaces
@@ -66,7 +67,6 @@ Options are:
         z           in flying or oceanic specimens, the distance to
                     groud (depth as negative) when the sampling was
                     made.
-        elevation   elevation over sea level, in meters
         reference   a bibliographic reference
         dataset     source of the specimen record information
         determiner  the person who identified the specimen
@@ -130,7 +130,6 @@ func run(c *cmdapp.Command, args []string) error {
 }
 
 func setRec(rec *records.Record) error {
-	geo := rec.GeoRef()
 	ev := rec.CollEvent()
 	switch key {
 	case "date":
@@ -174,16 +173,6 @@ func setRec(rec *records.Record) error {
 			ev.Z = z
 		}
 		rec.SetCollEvent(ev)
-	case "elevation":
-		geo.Elevation = 0
-		if value != "" {
-			elv, err := strconv.Atoi(value)
-			if err != nil {
-				return errors.Wrap(err, "invalid elevation")
-			}
-			geo.Elevation = uint(elv)
-		}
-		rec.SetGeoRef(geo)
 	default:
 		return rec.Set(key, value)
 	}
