@@ -9,6 +9,7 @@ package main
 import (
 	// initialize records sub-commands
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/add"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/assign"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/dbadd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/georef"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/info"

@@ -11,6 +11,7 @@ The commands are:
     db.drivers       list the database drivers
     help             display help information about biodv
     rec.add          add specimen records
+    rec.assign       change taxon assignment of an specimen record
     rec.db.add       add records from an external DB
     rec.georef       set the georeference of an specimen record
     rec.info         print record information
@@ -171,6 +172,31 @@ Options are:
     <file>
       One or more files to be processed by rec.add. If no file is given,
       the data will be read from the standard input.
+
+Change taxon assignment of an specimen record
+
+Usage:
+
+	biodv rec.assign --to <name> [-c|--check] <record>
+
+Command rec.assign changes the taxon assignation of an specimen record.
+If the -c or --check option is defined, it will check if the taxon
+assignation is on a taxon that exist on the taxonomy database.
+
+Options are:
+
+    -to <name>
+    --to <name>
+      Sets the new assignation of the specimen. It is a required
+      parameter.
+
+    -c
+    --check
+      If set, the taxon name will be validated on the taxonomy
+      database.
+
+    <record>
+      The record to be re-assigned.
 
 Add records from an external DB
 
