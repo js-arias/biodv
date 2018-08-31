@@ -38,7 +38,7 @@ locality: San Francisco
 dataset: gbif:2dad0cd2-e880-4ec3-90e5-d3f479528cbd
 extern:	gbif:1893501987
 %%
-taxon:	Felis concolor
+taxon:	FELIS CONCOLOR
 ID:	MSU:MR:MR.8672
 basis:	preserved
 dataset: gbif:22a66350-7947-4a49-84a3-39c7c1b0881f
@@ -57,8 +57,8 @@ func TestScan(t *testing.T) {
 	i := 0
 	for sc.Scan() {
 		rec := sc.Record()
-		if rec.Taxon() != testData[i].taxon {
-			t.Errorf("wrong taxon %q, want %q", rec.Taxon(), testData[i].taxon)
+		if rec.Taxon() != biodv.TaxCanon(testData[i].taxon) {
+			t.Errorf("wrong taxon %q, want %q", rec.Taxon(), biodv.TaxCanon(testData[i].taxon))
 		}
 		geo := rec.GeoRef()
 		if !geo.IsValid() && i != 1 {

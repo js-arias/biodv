@@ -24,7 +24,7 @@ var testData = []struct {
 }{
 	{"Larus argentatus", biodv.Machine, "Larus argentatus:1", 50.223982, 1.596802, "gbif:1494057472"},
 	{"Felis concolor couguar", biodv.Preserved, "Felis concolor couguar:1", 360, 360, "gbif:1893501987"},
-	{"Felis concolor", biodv.Preserved, "MSU:MR:MR.8672", 0.25, -79.8333, "gbif:919431660"},
+	{"FELIS CONCOLOR", biodv.Preserved, "MSU:MR:MR.8672", 0.25, -79.8333, "gbif:919431660"},
 }
 
 func TestTaxFileName(t *testing.T) {
@@ -58,8 +58,8 @@ func TestAdd(t *testing.T) {
 		if rec.ID() != d.id {
 			t.Errorf("record %q, want %q", rec.ID(), d.id)
 		}
-		if rec.Taxon() != d.taxon {
-			t.Errorf("record %q, taxon %q, want %q", rec.ID(), rec.Taxon(), d.taxon)
+		if rec.Taxon() != biodv.TaxCanon(d.taxon) {
+			t.Errorf("record %q, taxon %q, want %q", rec.ID(), rec.Taxon(), biodv.TaxCanon(d.taxon))
 		}
 		geo := rec.GeoRef()
 		if d.id == "Felis concolor couguar:1" {
@@ -90,6 +90,76 @@ func TestAdd(t *testing.T) {
 	for _, d := range testData {
 		if _, err := db.Add(d.taxon, d.id, "", d.basis, d.lat, d.lon); err == nil {
 			t.Errorf("when adding %q: expecting error", d.id)
+		}
+	}
+}
+
+func TestMove(t *testing.T) {
+	db := &DB{tids: make(map[string]*taxon), ids: make(map[string]*Record)}
+	for _, d := range testData {
+		_, err := db.Add(d.taxon, d.id, "", d.basis, d.lat, d.lon)
+		if err != nil {
+			t.Errorf("when adding %q: %v", d.id, err)
+		}
+	}
+
+	id := "Felis concolor couguar:1"
+	dest := "Felis concolor"
+
+	if err := db.Move(id, dest); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	rec, _ := db.RecID(id)
+	if rec == nil {
+		t.Errorf("record %q not in database", id)
+	} else {
+		if rec.Taxon() != dest {
+			t.Errorf("record %q, taxon %q, want %q", rec.ID(), rec.Taxon(), dest)
+		}
+	}
+
+	sc := db.TaxRecs("Felis concolor couguar")
+	ok := false
+	for sc.Scan() {
+		rec := sc.Record()
+		if rec.ID() == id {
+			ok = true
+		}
+	}
+	if err := sc.Err(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if ok {
+		t.Errorf("record %q already on taxon %q", id, "Felis concolor couguar")
+	}
+
+	sc = db.TaxRecs(dest)
+	ok = false
+	for sc.Scan() {
+		rec := sc.Record()
+		if rec.ID() == id {
+			ok = true
+		}
+	}
+	if err := sc.Err(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !ok {
+		t.Errorf("record %q not on taxon %q", id, dest)
+	}
+
+	dest = "Puma concolor"
+	if err := db.Move(id, dest); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	rec, _ = db.RecID(id)
+	if rec == nil {
+		t.Errorf("record %q not in database", id)
+	} else {
+		if rec.Taxon() != dest {
+			t.Errorf("record %q, taxon %q, want %q", rec.ID(), rec.Taxon(), dest)
 		}
 	}
 }

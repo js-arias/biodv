@@ -221,6 +221,7 @@ func (sc *Scanner) Scan() bool {
 			sc.err = errors.Errorf("records: scanner: record %q without assigned taxon", rec[idKey])
 			return false
 		}
+		rec[taxonKey] = biodv.TaxCanon(rec[taxonKey])
 
 		rec[basisKey] = biodv.GetBasis(rec[basisKey]).String()
 		t, _ := time.Parse(time.RFC3339, rec[dateKey])

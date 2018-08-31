@@ -62,7 +62,7 @@ type DB struct {
 // This function is for compatibility with biodv.RecDB interface.
 func (db *DB) TaxRecs(id string) *biodv.RecScan {
 	sc := biodv.NewRecScan(1)
-	id = strings.TrimSpace(id)
+	id = biodv.TaxCanon(id)
 	if id == "" {
 		sc.Add(nil, errors.Errorf("records: db: taxrec: empty taxon ID"))
 		return sc
@@ -84,6 +84,45 @@ func (db *DB) TaxRecs(id string) *biodv.RecScan {
 		sc.Add(nil, nil)
 	}()
 	return sc
+}
+
+// Move moves a record,
+// to another taxon.
+// If the destination taxon is not in the database,
+// it will be added to it.
+func (db *DB) Move(id, taxID string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil
+	}
+	rec := db.ids[id]
+	if rec == nil {
+		return nil
+	}
+
+	taxID = biodv.TaxCanon(taxID)
+	if taxID == "" {
+		return errors.Errorf("records: db: move: empty taxon ID")
+	}
+
+	old := rec.taxon
+	if old.id == taxID {
+		return nil
+	}
+
+	tax, ok := db.tids[taxID]
+	if !ok {
+		tax = &taxon{id: taxID, db: db}
+		db.tids[taxID] = tax
+		db.changed = true
+	}
+
+	old.removeRecord(rec)
+	rec.data[taxonKey] = taxID
+	tax.recs = append(tax.recs, rec)
+	tax.changed = true
+	tax.sorted = false
+	return nil
 }
 
 // Record returns an editable Record.
@@ -125,7 +164,19 @@ func (tax *taxon) commit() (err error) {
 		return nil
 	}
 
+	taxFile := taxFileName(tax.id)
+	file := filepath.Join(tax.db.path, recDir, taxFile)
+
+	// If there is no records in the taxon
+	// removes the file with that records
 	if len(tax.recs) == 0 {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			tax.changed = false
+			return nil
+		}
+		if err = os.Remove(file); err != nil {
+			return errors.Wrap(err, "records: db: commit")
+		}
 		tax.changed = false
 		return nil
 	}
@@ -135,8 +186,6 @@ func (tax *taxon) commit() (err error) {
 		tax.sorted = true
 	}
 
-	taxFile := taxFileName(tax.id)
-	file := filepath.Join(tax.db.path, recDir, taxFile)
 	var f *os.File
 	f, err = os.Create(file)
 	if err != nil {
@@ -159,6 +208,22 @@ func (tax *taxon) commit() (err error) {
 	}
 	tax.changed = false
 	return nil
+}
+
+func (tax *taxon) removeRecord(rec *Record) {
+	for i, r := range tax.recs {
+		if r != rec {
+			continue
+		}
+		copy(tax.recs[i:], tax.recs[i+1:])
+		tax.recs[len(tax.recs)-1] = nil
+		tax.recs = tax.recs[:len(tax.recs)-1]
+		tax.changed = true
+		break
+	}
+	if len(tax.recs) == 0 {
+		tax.db.changed = true
+	}
 }
 
 // Record is a record stored in a DB.
@@ -652,7 +717,7 @@ func (db *DB) scan(sc *Scanner) error {
 
 // Add adds a new record to a DB.
 func (db *DB) Add(taxID, id, catalog string, basis biodv.BasisOfRecord, lat, lon float64) (*Record, error) {
-	taxID = strings.TrimSpace(taxID)
+	taxID = biodv.TaxCanon(taxID)
 	if taxID == "" {
 		return nil, errors.New("records: db: add: empty taxon")
 	}
@@ -738,6 +803,9 @@ func (db *DB) saveTaxList() (err error) {
 
 	ls := make([]string, 0, len(db.tids))
 	for _, tax := range db.tids {
+		if len(tax.recs) == 0 {
+			continue
+		}
 		ls = append(ls, tax.id)
 	}
 	sort.Strings(ls)
