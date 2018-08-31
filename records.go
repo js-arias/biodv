@@ -315,6 +315,12 @@ func (c CollectionEvent) Country() string {
 	return geography.Country(c.Admin.Country)
 }
 
+// CountryCode returns the country code
+// of the collection event.
+func (c CollectionEvent) CountryCode() string {
+	return c.Admin.Country
+}
+
 // State returns the first administrative division
 // of a country,
 // e.g. a US state,

@@ -19,11 +19,18 @@ type Admin struct {
 // Country returns the name of a country,
 // for a given ISO 3166-1 alpha-2 country code.
 func Country(code string) string {
-	code = strings.ToUpper(code)
-	return country[code]
+	return country[strings.ToUpper(code)]
 }
 
-// Country is a valid ISO 3166-1 alpha-2 county code, as in
+// IsValidCode returns true if a code
+// is a valid ISO 3166-1 alpha-2 country code.
+func IsValidCode(code string) bool {
+	_, ok := country[strings.ToUpper(code)]
+	return ok
+}
+
+// Country is a valid ISO 3166-1 alpha-2 county code,
+// as in
 // <http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2>.
 var country = map[string]string{
 	"AD": "Andorra",

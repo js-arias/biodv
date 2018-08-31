@@ -230,8 +230,8 @@ func (sc *Scanner) Scan() bool {
 		} else {
 			rec[dateKey] = t.Format(time.RFC3339)
 		}
-		if c := geography.Country(rec[countryKey]); c != "" {
-			rec[countryKey] = strings.ToUpper(c)
+		if geography.IsValidCode(rec[countryKey]) {
+			rec[countryKey] = strings.ToUpper(rec[countryKey])
 		} else {
 			delete(rec, countryKey)
 			delete(rec, stateKey)

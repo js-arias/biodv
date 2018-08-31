@@ -253,7 +253,7 @@ func (rec *Record) SetCollEvent(event biodv.CollectionEvent) {
 			delete(rec.data, countyKey)
 			rec.taxon.changed = true
 		} else if event.Country() != "" {
-			rec.data[countryKey] = strings.ToUpper(event.Admin.Country)
+			rec.data[countryKey] = strings.ToUpper(event.CountryCode())
 			rec.taxon.changed = true
 		}
 	}
