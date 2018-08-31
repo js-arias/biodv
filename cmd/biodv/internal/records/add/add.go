@@ -155,7 +155,7 @@ func read(recs *records.DB, in io.Reader) error {
 			return errors.Wrapf(err, "on row %d", i)
 		}
 
-		pt := biodv.InvalidPoint()
+		pt := geography.NewPosition()
 		nm := biodv.TaxCanon(row[cols["taxon"]])
 		if nm == "" {
 			continue
@@ -224,9 +224,6 @@ func read(recs *records.DB, in io.Reader) error {
 			case "elevation":
 				elv, _ := strconv.Atoi(row[c])
 				pt.Elevation = uint(elv)
-			case "depth":
-				dp, _ := strconv.Atoi(row[c])
-				pt.Depth = uint(dp)
 			case "uncertainty":
 				un, _ := strconv.Atoi(row[c])
 				pt.Uncertainty = uint(un)
@@ -241,6 +238,6 @@ func read(recs *records.DB, in io.Reader) error {
 			}
 		}
 		rec.SetCollEvent(ev)
-		rec.SetGeoRef(pt, biodv.GeoPrecision)
+		rec.SetGeoRef(pt)
 	}
 }

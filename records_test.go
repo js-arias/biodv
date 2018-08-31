@@ -9,6 +9,8 @@ package biodv
 import (
 	"testing"
 
+	"github.com/js-arias/biodv/geography"
+
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +23,7 @@ func (mr mockRecord) ID() string {
 func (mr mockRecord) Taxon() string              { return "mock" }
 func (mr mockRecord) Basis() BasisOfRecord       { return UnknownBasis }
 func (mr mockRecord) CollEvent() CollectionEvent { return CollectionEvent{} }
-func (mr mockRecord) GeoRef() Point              { return InvalidPoint() }
+func (mr mockRecord) GeoRef() geography.Position { return geography.NewPosition() }
 func (mr mockRecord) Keys() []string             { return nil }
 func (mr mockRecord) Value(key string) string    { return "" }
 

@@ -191,7 +191,7 @@ func addRecord(recs *records.DB, tax biodv.Taxon, r biodv.Record) {
 		return
 	}
 	rec.SetCollEvent(r.CollEvent())
-	rec.SetGeoRef(r.GeoRef(), biodv.GeoPrecision)
+	rec.SetGeoRef(r.GeoRef())
 	keys := r.Keys()
 	for _, k := range keys {
 		if k == biodv.RecCatalog {
@@ -314,16 +314,8 @@ func updateGeoRef(rec *records.Record, r biodv.Record) {
 		rg.Lat = geo.Lat
 	}
 
-	if geo.Elevation > 0 && geo.Depth < 0 {
-		geo.Elevation = 0
-		geo.Depth = 0
-	}
-
 	if rg.Elevation == 0 {
 		rg.Elevation = geo.Elevation
-	}
-	if rg.Depth == 0 {
-		rg.Depth = geo.Depth
 	}
 
 	if rg.Source == "" {
@@ -338,7 +330,7 @@ func updateGeoRef(rec *records.Record, r biodv.Record) {
 		rg.Validation = geo.Validation
 	}
 
-	rec.SetGeoRef(rg, biodv.GeoPrecision)
+	rec.SetGeoRef(rg)
 }
 
 func procChildren(txm biodv.Taxonomy, ext biodv.RecDB, recs *records.DB, tax biodv.Taxon) {

@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
 	"github.com/js-arias/biodv/geography"
 	"github.com/js-arias/biodv/records"
@@ -187,17 +186,7 @@ func setRec(rec *records.Record) error {
 			}
 			geo.Elevation = uint(elv)
 		}
-		rec.SetGeoRef(geo, biodv.GeoPrecision)
-	case "depth":
-		geo.Depth = 0
-		if value != "" {
-			depth, err := strconv.Atoi(value)
-			if err != nil {
-				return errors.Wrap(err, "invalid depth")
-			}
-			geo.Depth = uint(depth)
-		}
-		rec.SetGeoRef(geo, biodv.GeoPrecision)
+		rec.SetGeoRef(geo)
 	default:
 		return rec.Set(key, value)
 	}

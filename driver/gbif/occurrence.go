@@ -215,25 +215,22 @@ func (occ *occurrence) CollEvent() biodv.CollectionEvent {
 	return cl
 }
 
-func (occ *occurrence) GeoRef() biodv.Point {
-	pt := biodv.InvalidPoint()
+func (occ *occurrence) GeoRef() geography.Position {
+	p := geography.NewPosition()
 
-	if occ.Elevation > 0 && occ.Depth == 0 {
-		pt.Elevation = uint(occ.Elevation)
-	}
-	if occ.Depth < 0 && occ.Elevation == 0 {
-		pt.Depth = uint(occ.Depth)
+	if occ.Elevation > 0 {
+		p.Elevation = uint(occ.Elevation)
 	}
 
 	if occ.isZero() {
-		return pt
+		return p
 	}
 	if geography.IsValidCoord(occ.DecimalLatitude, occ.DecimalLongitude) {
-		pt.Lat = occ.DecimalLatitude
-		pt.Lon = occ.DecimalLongitude
+		p.Lat = occ.DecimalLatitude
+		p.Lon = occ.DecimalLongitude
 	}
-	pt.Source = occ.GeoreferenceSources
-	return pt
+	p.Source = occ.GeoreferenceSources
+	return p
 }
 
 func (occ *occurrence) Keys() []string {

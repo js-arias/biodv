@@ -24,6 +24,7 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/encoding/stanza"
+	"github.com/js-arias/biodv/geography"
 
 	"github.com/pkg/errors"
 )
@@ -192,7 +193,7 @@ func (rec *Record) CollEvent() biodv.CollectionEvent {
 //
 // If the record is not georeferenced
 // is should return an invalid Point.
-func (rec *Record) GeoRef() biodv.Point {
+func (rec *Record) GeoRef() geography.Position {
 	return recmap(rec.data).GeoRef()
 }
 
@@ -226,7 +227,6 @@ const (
 	latlonKey      = "latlon"
 	uncertaintyKey = "uncertainty"
 	elevationKey   = "elevation"
-	depthKey       = "depth"
 	geosourceKey   = "geosource"
 	validationKey  = "validation"
 	zKey           = "z"
@@ -305,11 +305,7 @@ func (rec *Record) SetCollEvent(event biodv.CollectionEvent) {
 
 // SetGeoRef sets the values
 // of a georeference.
-// The prec parameter controls the precision
-// used to compare the old and new
-// georeferences
-// (if any).
-func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
+func (rec *Record) SetGeoRef(geo geography.Position) {
 	old := rec.GeoRef()
 
 	if !geo.IsValid() {
@@ -320,14 +316,9 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 	} else if !old.IsValid() {
 		storeLatLon(rec.data, geo.Lat, geo.Lon)
 		rec.taxon.changed = true
-	} else if !geo.Equal(old, prec) {
+	} else if !geo.Equal(old) {
 		storeLatLon(rec.data, geo.Lat, geo.Lon)
 		rec.taxon.changed = true
-	}
-
-	if geo.Elevation > 0 && geo.Depth < 0 {
-		geo.Elevation = old.Elevation
-		geo.Depth = old.Depth
 	}
 
 	if geo.Elevation == 0 {
@@ -337,16 +328,6 @@ func (rec *Record) SetGeoRef(geo biodv.Point, prec float64) {
 		}
 	} else if geo.Elevation != old.Elevation {
 		rec.data[elevationKey] = strconv.Itoa(int(geo.Elevation))
-		rec.taxon.changed = true
-	}
-
-	if geo.Depth == 0 {
-		if rec.data[depthKey] != "" {
-			delete(rec.data, depthKey)
-			rec.taxon.changed = true
-		}
-	} else if geo.Depth != old.Depth {
-		rec.data[depthKey] = strconv.Itoa(int(geo.Depth))
 		rec.taxon.changed = true
 	}
 
@@ -412,8 +393,6 @@ func (rec *Record) Set(key, value string) error {
 	case uncertaintyKey:
 		fallthrough
 	case elevationKey:
-		fallthrough
-	case depthKey:
 		fallthrough
 	case geosourceKey:
 		fallthrough
@@ -538,7 +517,6 @@ func (rec *Record) encode(w *stanza.Writer) error {
 		latlonKey,
 		uncertaintyKey,
 		elevationKey,
-		depthKey,
 		geosourceKey,
 		validationKey,
 	}
@@ -661,7 +639,7 @@ func (db *DB) scan(sc *Scanner) error {
 			return err
 		}
 		rec.SetCollEvent(r.CollEvent())
-		rec.SetGeoRef(r.GeoRef(), biodv.GeoPrecision)
+		rec.SetGeoRef(r.GeoRef())
 		keys := r.Keys()
 		for _, k := range keys {
 			if err := rec.Set(k, r.Value(k)); err != nil {

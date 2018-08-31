@@ -65,26 +65,26 @@ func (r recmap) CollEvent() biodv.CollectionEvent {
 	}
 }
 
-func (r recmap) GeoRef() biodv.Point {
-	p := biodv.InvalidPoint()
+func (r recmap) GeoRef() geography.Position {
 	elv, _ := strconv.Atoi(r[elevationKey])
-	dep, _ := strconv.Atoi(r[depthKey])
-	p.Elevation = uint(elv)
-	p.Depth = uint(dep)
 
 	v := strings.Fields(r[latlonKey])
 	if len(v) != 2 {
-		return p
+		return geography.NewPosition()
 	}
 	lat, _ := strconv.ParseFloat(v[0], 64)
 	lon, _ := strconv.ParseFloat(v[1], 64)
-	p.Lat = lat
-	p.Lon = lon
-	p.Source = r[geosourceKey]
-	p.Validation = r[validationKey]
 
 	un, _ := strconv.Atoi(r[uncertaintyKey])
-	p.Uncertainty = uint(un)
+
+	p := geography.Position{
+		Lat:         lat,
+		Lon:         lon,
+		Elevation:   uint(elv),
+		Uncertainty: uint(un),
+		Source:      r[geosourceKey],
+		Validation:  r[validationKey],
+	}
 	return p
 }
 
@@ -103,7 +103,6 @@ func (r recmap) Keys() []string {
 		latlonKey:      true,
 		uncertaintyKey: true,
 		elevationKey:   true,
-		depthKey:       true,
 		geosourceKey:   true,
 		validationKey:  true,
 		zKey:           true,
@@ -244,20 +243,10 @@ func (sc *Scanner) Scan() bool {
 			delete(rec, zKey)
 		}
 		elv, _ := strconv.Atoi(rec[elevationKey])
-		dep, _ := strconv.Atoi(rec[depthKey])
-		if elv > 0 && dep < 0 {
-			elv = 0
-			dep = 0
-		}
 		if elv > 0 {
 			rec[elevationKey] = strconv.Itoa(elv)
 		} else {
 			delete(rec, elevationKey)
-		}
-		if dep < 0 {
-			rec[depthKey] = strconv.Itoa(dep)
-		} else {
-			delete(rec, depthKey)
 		}
 
 		v := strings.Fields(rec[latlonKey])

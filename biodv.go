@@ -9,7 +9,11 @@
 // for a basic biodiversity database.
 package biodv
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/js-arias/biodv/geography"
+)
 
 // A Taxonomy is a taxonomy database.
 type Taxonomy interface {
@@ -93,7 +97,7 @@ type Record interface {
 	//
 	// If the record is not georeferenced
 	// is should return an invalid Point.
-	GeoRef() Point
+	GeoRef() geography.Position
 
 	// Keys returns a list of additional fields
 	// stored in the record.
