@@ -4,8 +4,6 @@
 //
 // Originally written by J. Salvador Arias <jsalarias@csnat.unt.edu.ar>.
 
-// Package records implements
-// a records database.
 package records
 
 import (
