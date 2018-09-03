@@ -60,6 +60,8 @@ type DB struct {
 
 // TaxRecs returns a list of records from a given taxon ID.
 // This function is for compatibility with biodv.RecDB interface.
+//
+// When using an editable DB prefer RecList.
 func (db *DB) TaxRecs(id string) *biodv.RecScan {
 	sc := biodv.NewRecScan(1)
 	id = biodv.TaxCanon(id)
@@ -86,7 +88,7 @@ func (db *DB) TaxRecs(id string) *biodv.RecScan {
 	return sc
 }
 
-// RecList returns a list of editable records
+// RecList returns a list of records
 // for a given taxon name.
 func (db *DB) RecList(id string) []*Record {
 	id = biodv.TaxCanon(id)
@@ -171,7 +173,7 @@ func (db *DB) Delete(id string) {
 	tax.removeRecord(rec)
 }
 
-// Record returns an editable Record.
+// Record returns a Record.
 func (db *DB) Record(id string) *Record {
 	id = strings.TrimSpace(id)
 	if id == "" {
