@@ -31,7 +31,9 @@ var cmd = &cmdapp.Command{
 Command rec.add adds one or more records from the indicated files, or
 the standard input (if no file is defined) to the specimen records
 database. It assumes that the input file is a table with tab-delimited
-values. Recoginzed column names (and their accepted values) are:
+values.
+
+Recognized column names (and their accepted values) are:
 
     id           the ID of the record.
     taxon        name (or ID) of the taxon assigned to the specimen.

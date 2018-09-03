@@ -45,7 +45,7 @@ Options are:
 
     <name>
       If set, only the records for the indicated taxon (and its
-      descendats) will be added.
+      descendants) will be added.
 	`,
 	Run:           run,
 	RegisterFlags: register,

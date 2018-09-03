@@ -122,7 +122,9 @@ Usage:
 Command rec.add adds one or more records from the indicated files, or
 the standard input (if no file is defined) to the specimen records
 database. It assumes that the input file is a table with tab-delimited
-values. Recoginzed column names (and their accepted values) are:
+values.
+
+Recognized column names (and their accepted values) are:
 
     id           the ID of the record.
     taxon        name (or ID) of the taxon assigned to the specimen.
@@ -226,7 +228,7 @@ Options are:
 
     <name>
       If set, only the records for the indicated taxon (and its
-      descendats) will be added.
+      descendants) will be added.
 
 Eliminate an specimen record from the database
 
