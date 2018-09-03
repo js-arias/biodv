@@ -86,6 +86,26 @@ func (db *DB) TaxRecs(id string) *biodv.RecScan {
 	return sc
 }
 
+// RecList returns a list of editable records
+// for a given taxon name.
+func (db *DB) RecList(id string) []*Record {
+	id = biodv.TaxCanon(id)
+	if id == "" {
+		return nil
+	}
+	tax, ok := db.tids[id]
+	if !ok {
+		return nil
+	}
+	if !tax.sorted {
+		sortRecords(tax.recs)
+		tax.sorted = true
+	}
+	ls := make([]*Record, len(tax.recs))
+	copy(ls, tax.recs)
+	return ls
+}
+
 // Move moves a record,
 // to another taxon.
 // If the destination taxon is not in the database,
