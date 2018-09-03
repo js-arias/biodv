@@ -15,14 +15,16 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
+	"github.com/js-arias/biodv/geography"
 	"github.com/js-arias/biodv/records"
 
 	"github.com/pkg/errors"
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: "rec.db.add -e|--extern <database> [-g|--georef] [<name>]",
-	Short:     "add records from an external DB",
+	UsageLine: `rec.db.add -e|--extern <database> [-g|--georef]
+		[-l|--locatable] [<name>]`,
+	Short: "add records from an external DB",
 	Long: `
 Command rec.db.add adds one or more records from the indicated database.
 Only the taxons on the local taxon database that are already matched to
@@ -43,6 +45,12 @@ Options are:
     --georef
       If set, only the records with a valid georefence will be added.
 
+    -l
+    --locatable
+      If set, only records that can be locatable (i.e either
+      georeferenced or with a complete description of the locality)
+      will be stored.
+
     <name>
       If set, only the records for the indicated taxon (and its
       descendants) will be added.
@@ -57,12 +65,15 @@ func init() {
 
 var extName string
 var georef bool
+var locatable bool
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&extName, "extern", "", "")
 	c.Flag.StringVar(&extName, "e", "", "")
 	c.Flag.BoolVar(&georef, "georef", false, "")
 	c.Flag.BoolVar(&georef, "g", false, "")
+	c.Flag.BoolVar(&locatable, "locatable", false, "")
+	c.Flag.BoolVar(&locatable, "l", false, "")
 }
 
 var ids map[string][]biodv.Record
@@ -143,6 +154,9 @@ func procTaxon(txm biodv.Taxonomy, ext biodv.RecDB, recs *records.DB, tax biodv.
 		r := sr.Record()
 		geo := r.GeoRef()
 		if georef && !geo.IsValid() {
+			continue
+		}
+		if locatable && !isLocatable(r) {
 			continue
 		}
 
@@ -341,6 +355,23 @@ func procChildren(txm biodv.Taxonomy, ext biodv.RecDB, recs *records.DB, tax bio
 	for _, c := range children {
 		procTaxon(txm, ext, recs, c)
 	}
+}
+
+// IsLocatable returns true if the record is locatable.
+func isLocatable(r biodv.Record) bool {
+	geo := r.GeoRef()
+	if geo.IsValid() {
+		return true
+	}
+
+	ev := r.CollEvent()
+	if !geography.IsValidCode(ev.CountryCode()) {
+		return false
+	}
+	if ev.Locality != "" {
+		return true
+	}
+	return ev.State() != "" || ev.County() != ""
 }
 
 // GetRank returns the rank of a taxon,

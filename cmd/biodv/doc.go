@@ -118,7 +118,7 @@ Add specimen records
 
 Usage:
 
-	biodv rec.add [<file>..,]
+	biodv rec.add [-g|--georef] [-l|--locatable] [<file>..,]
 
 Command rec.add adds one or more records from the indicated files, or
 the standard input (if no file is defined) to the specimen records
@@ -173,6 +173,16 @@ Other values are accepted and stored as given.
 
 Options are:
 
+    -g
+    --georef
+      If set, only the records with a valid georefence will be added.
+
+    -l
+    --locatable
+      If set, only records that can be locatable (i.e either
+      georeferenced or with a complete description of the locality)
+      will be stored.
+
     <file>
       One or more files to be processed by rec.add. If no file is given,
       the data will be read from the standard input.
@@ -206,7 +216,8 @@ Add records from an external DB
 
 Usage:
 
-	biodv rec.db.add -e|--extern <database> [-g|--georef] [<name>]
+	biodv rec.db.add -e|--extern <database> [-g|--georef]
+		[-l|--locatable] [<name>]
 
 Command rec.db.add adds one or more records from the indicated database.
 Only the taxons on the local taxon database that are already matched to
@@ -226,6 +237,12 @@ Options are:
     -g
     --georef
       If set, only the records with a valid georefence will be added.
+
+    -l
+    --locatable
+      If set, only records that can be locatable (i.e either
+      georeferenced or with a complete description of the locality)
+      will be stored.
 
     <name>
       If set, only the records for the indicated taxon (and its

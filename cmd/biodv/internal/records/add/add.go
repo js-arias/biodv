@@ -25,7 +25,7 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: "rec.add [<file>..,]",
+	UsageLine: "rec.add [-g|--georef] [-l|--locatable] [<file>..,]",
 	Short:     "add specimen records",
 	Long: `
 Command rec.add adds one or more records from the indicated files, or
@@ -81,6 +81,16 @@ Other values are accepted and stored as given.
 
 Options are:
 
+    -g
+    --georef
+      If set, only the records with a valid georefence will be added.
+
+    -l
+    --locatable
+      If set, only records that can be locatable (i.e either
+      georeferenced or with a complete description of the locality)
+      will be stored.
+
     <file>
       One or more files to be processed by rec.add. If no file is given,
       the data will be read from the standard input.
@@ -90,6 +100,16 @@ Options are:
 
 func init() {
 	cmdapp.Add(cmd)
+}
+
+var georef bool
+var locatable bool
+
+func register(c *cmdapp.Command) {
+	c.Flag.BoolVar(&georef, "georef", false, "")
+	c.Flag.BoolVar(&georef, "g", false, "")
+	c.Flag.BoolVar(&locatable, "locatable", false, "")
+	c.Flag.BoolVar(&locatable, "l", false, "")
 }
 
 func run(c *cmdapp.Command, args []string) error {
@@ -191,15 +211,17 @@ func read(recs *records.DB, in io.Reader) error {
 			pt.Lat = lat
 			pt.Lon = lon
 		}
+
+		if georef && !pt.IsValid() {
+			continue
+		}
+
 		cat := ""
 		if c, ok := cols["catalog"]; ok {
 			cat = row[c]
 		}
 
-		rec, err := recs.Add(nm, id, cat, basis, pt.Lat, pt.Lon)
-		if err != nil {
-			return errors.Wrapf(err, "on row %d", i)
-		}
+		vals := make(map[string]string)
 		ev := biodv.CollectionEvent{}
 		for h, c := range cols {
 			switch h {
@@ -235,12 +257,38 @@ func read(recs *records.DB, in io.Reader) error {
 			case "validation":
 				pt.Validation = row[c]
 			default:
-				if err := rec.Set(h, row[c]); err != nil {
-					return errors.Wrapf(err, "on row %d, col '%s'", i, h)
-				}
+				vals[h] = row[c]
 			}
+		}
+		if locatable && !isLocatable(pt, ev) {
+			continue
+		}
+
+		rec, err := recs.Add(nm, id, cat, basis, pt.Lat, pt.Lon)
+		if err != nil {
+			return errors.Wrapf(err, "on row %d", i)
 		}
 		rec.SetCollEvent(ev)
 		rec.SetGeoRef(pt)
+		for k, v := range vals {
+			if err := rec.Set(k, v); err != nil {
+				return errors.Wrapf(err, "on row %d, col '%s'", i, k)
+			}
+		}
 	}
+}
+
+// IsLocatable returns true if the record is locatable.
+func isLocatable(pt geography.Position, ev biodv.CollectionEvent) bool {
+	if pt.IsValid() {
+		return true
+	}
+
+	if !geography.IsValidCode(ev.CountryCode()) {
+		return false
+	}
+	if ev.Locality != "" {
+		return true
+	}
+	return ev.State() != "" || ev.County() != ""
 }
