@@ -252,6 +252,6 @@ func TestTaxonList(t *testing.T) {
 		t.Errorf("lines beginning with '#' should be left unread")
 	}
 	if _, ok := db.tids[biodv.TaxCanon("; Indominus rex")]; ok {
-		t.Errorf("lines bigining with ';' should be left unread")
+		t.Errorf("lines beginning with ';' should be left unread")
 	}
 }
