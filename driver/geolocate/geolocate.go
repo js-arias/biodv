@@ -148,7 +148,7 @@ func (gz gzService) Locate(adm geography.Admin, locality string) *biodv.GeoScan 
 	}
 
 	param := url.Values{}
-	param.Add("coutry", nm)
+	param.Add("country", nm)
 	param.Add("locality", locality)
 	if adm.State != "" {
 		param.Add("state", adm.State)
@@ -156,7 +156,7 @@ func (gz gzService) Locate(adm geography.Admin, locality string) *biodv.GeoScan 
 	if adm.County != "" {
 		param.Add("county", adm.County)
 	}
-	param.Add("enableH20", "false")
+	param.Add("enableH2O", "false")
 	param.Add("hwyX", "false")
 	param.Add("fmt", "geojson")
 	go gz.pointList(sc, param)
@@ -182,7 +182,7 @@ type point struct {
 
 type property struct {
 	Precision               string
-	UncertaintyRadiusMeters uint
+	UncertaintyRadiusMeters interface{}
 	Debug                   string
 }
 
@@ -190,7 +190,7 @@ type property struct {
 func (gz gzService) pointList(sc *biodv.GeoScan, param url.Values) {
 	var err error
 	for r := 0; r < Retry; r++ {
-		req := newRequest(wsHead + param.Encode())
+		req := newRequest(param.Encode())
 		select {
 		case err = <-req.err:
 			continue
@@ -206,10 +206,10 @@ func (gz gzService) pointList(sc *biodv.GeoScan, param url.Values) {
 					continue
 				}
 				p := geography.Position{
-					Lat:         f.Geometry.Coordinates[1],
-					Lon:         f.Geometry.Coordinates[0],
-					Uncertainty: f.Properties.UncertaintyRadiusMeters,
-					Source:      "web:geolocate",
+					Lat: f.Geometry.Coordinates[1],
+					Lon: f.Geometry.Coordinates[0],
+					// Uncertainty: f.Properties.UncertaintyRadiusMeters,
+					Source: "web:geolocate",
 				}
 				if !sc.Add(p, nil) {
 					return

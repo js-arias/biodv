@@ -60,6 +60,40 @@ var lasPavasBlob = `
 
 var errorBlob = "No Locality Provided"
 
+var noUncertaintyBlob = `
+{ "type": "FeatureCollection",
+"features": [
+{ "type": "Feature",
+"geometry": {"type": "Point", "coordinates": [-80.803219, 27.175332]},
+"properties": {
+"parsePattern" : "(g1)Lake Okeechobee",
+"precision" : "Medium",
+"score" : 60,
+"uncertaintyRadiusMeters" : "Unavailable",
+"uncertaintyPolygon" : "Unavailable",
+"displacedDistanceMiles" : 0,
+"displacedHeadingDegrees" : 0,
+"debug" : ":g1Match=LOCALITY|"
+}
+},
+{ "type": "Feature",
+"geometry": {"type": "Point", "coordinates": [-80.927778, 26.771389]},
+"properties": {
+"parsePattern" : "(g1)Lake Okeechobee",
+"precision" : "Medium",
+"score" : 60,
+"uncertaintyRadiusMeters" : "Unavailable",
+"uncertaintyPolygon" : "Unavailable",
+"displacedDistanceMiles" : 0,
+"displacedHeadingDegrees" : 0,
+"debug" : ":g1Match=LOCALITY|"
+}
+}
+ ],
+"crs": { "type" : "EPSG", "properties" : { "code" : 4326 }}
+}
+`
+
 func TestDecodePointList(t *testing.T) {
 	b := bytes.NewBufferString(lasPavasBlob)
 	ls, err := decodePointList(b)
@@ -69,10 +103,26 @@ func TestDecodePointList(t *testing.T) {
 	if len(ls.Features) != 3 {
 		t.Errorf("number of points %d, want %d", len(ls.Features), 3)
 	}
+	for _, f := range ls.Features {
+		if _, ok := f.Properties.UncertaintyRadiusMeters.(float64); !ok {
+			t.Errorf("decoding error on lasPavasBlob: uncertainty must be a number")
+		}
+	}
 
 	b = bytes.NewBufferString(errorBlob)
 	ls, err = decodePointList(b)
 	if err == nil {
 		t.Errorf("decoding error wanted")
+	}
+
+	b = bytes.NewBufferString(noUncertaintyBlob)
+	ls, err = decodePointList(b)
+	if err != nil {
+		t.Errorf("decoding error on noUncertaintyBlob: %v", err)
+	}
+	for _, f := range ls.Features {
+		if _, ok := f.Properties.UncertaintyRadiusMeters.(float64); ok {
+			t.Errorf("decoding error on lasPavasBlob: uncertainty must be a string")
+		}
 	}
 }
