@@ -88,3 +88,37 @@ func (p Position) Equal(op Position) bool {
 	}
 	return true
 }
+
+// EarthRadius is the WGS84 mean radius (in meters).
+const EarthRadius = 6371009
+
+// Distance returns the distance,
+// in meters
+// (using the WGS84 mean radius)
+// between two points.
+// This function ignores the uncertainty of the positions.
+func (p Position) Distance(op Position) uint {
+	l1, l2 := toRad(p.Lat), toRad(op.Lat)
+	dLon := toRad(p.Lon) - toRad(op.Lon)
+	dLat := l1 - l2
+	s1 := math.Sin(dLat / 2)
+	s1 *= s1
+	f1 := math.Sin(dLon / 2)
+	s2 := f1 * f1 * math.Cos(l1) * math.Cos(l2)
+	v := math.Sqrt(s1 + s2)
+	return uint(2 * EarthRadius * math.Asin(v))
+}
+
+// MaxDist returns the maximum distance,
+// in meters
+// (using the WGS84 mean radius)
+// between two points.
+// The maximum distance is equal to the distance
+// plus the uncertainty of both points.
+func (p Position) MaxDist(op Position) uint {
+	return p.Distance(op) + p.Uncertainty + op.Uncertainty
+}
+
+func toRad(angle float64) float64 {
+	return angle * math.Pi / 180
+}

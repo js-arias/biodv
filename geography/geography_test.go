@@ -85,3 +85,25 @@ func TestEqual(t *testing.T) {
 		}
 	}
 }
+
+func TestDistance(t *testing.T) {
+	testData := []struct {
+		p       Position
+		op      Position
+		want    uint
+		wantMax uint
+	}{
+		{Position{Lat: 40.714269, Lon: -74.005973, Uncertainty: 3036}, Position{Lat: 45.639725, Lon: 5.737419, Uncertainty: 3036}, 6215190, 6221262},
+		{Position{Lat: 40.714269, Lon: -74.005973, Uncertainty: 3036}, Position{Lat: 51.514125, Lon: -0.093689, Uncertainty: 301}, 5572131, 5575468},
+		{Position{Lat: 45.639725, Lon: 5.737419, Uncertainty: 3036}, Position{Lat: 51.514125, Lon: -0.093689, Uncertainty: 301}, 780916, 784253},
+	}
+
+	for _, d := range testData {
+		if d.p.Distance(d.op) != d.want {
+			t.Errorf("distance [%.5f %.5f] - [%.5f %.5f] %d, want %d", d.p.Lat, d.p.Lon, d.op.Lat, d.op.Lon, d.p.Distance(d.op), d.want)
+		}
+		if d.p.MaxDist(d.op) != d.wantMax {
+			t.Errorf("maximum distance [%.5f %.5f] - [%.5f %.5f] %d, want %d", d.p.Lat, d.p.Lon, d.op.Lat, d.op.Lon, d.p.MaxDist(d.op), d.wantMax)
+		}
+	}
+}
