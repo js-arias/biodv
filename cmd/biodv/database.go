@@ -11,6 +11,7 @@ import (
 
 	// load drivers
 	_ "github.com/js-arias/biodv/driver/gbif"
+	_ "github.com/js-arias/biodv/driver/geolocate"
 
 	// initialize database sub-commands
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/database/drivers"

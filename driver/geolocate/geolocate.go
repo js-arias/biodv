@@ -208,8 +208,11 @@ func (gz gzService) pointList(sc *biodv.GeoScan, param url.Values) {
 				p := geography.Position{
 					Lat: f.Geometry.Coordinates[1],
 					Lon: f.Geometry.Coordinates[0],
-					// Uncertainty: f.Properties.UncertaintyRadiusMeters,
 					Source: "web:geolocate",
+				}
+				
+				if v, ok := f.Properties.UncertaintyRadiusMeters.(float64); ok {
+					p.Uncertainty = uint(v)
 				}
 				if !sc.Add(p, nil) {
 					return

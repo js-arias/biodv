@@ -15,6 +15,7 @@ import (
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/dbadd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/del"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/georef"
+	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/gzgeoref"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/info"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/mapcmd"
 	_ "github.com/js-arias/biodv/cmd/biodv/internal/records/set"
