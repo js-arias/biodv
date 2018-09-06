@@ -32,7 +32,9 @@ the external DB will be search. Only taxons at or below species rank will
 be searched.
 
 If the option -g or --georef  is defined, only records with valid
-georeferences will be added.
+georeferences will be added. If the option -l or --locatable is defined,
+only add records with a valid georeference or a country and locality
+values defined.
 
 Options are:
 

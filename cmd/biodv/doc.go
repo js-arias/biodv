@@ -15,6 +15,7 @@ The commands are:
     rec.db.add       add records from an external DB
     rec.del          eliminate an specimen record from the database
     rec.georef       set the georeference of an specimen record
+    rec.gz.georef    georeference specimen records
     rec.info         print record information
     rec.map          produce a map with georeferenced records
     rec.set          set an specimen record value
@@ -225,7 +226,9 @@ the external DB will be search. Only taxons at or below species rank will
 be searched.
 
 If the option -g or --georef  is defined, only records with valid
-georeferences will be added.
+georeferences will be added. If the option -l or --locatable is defined,
+only add records with a valid georeference or a country and locality
+values defined.
 
 Options are:
 
@@ -321,6 +324,38 @@ Options are:
 
     <record>
       The record to be set.
+
+Georeference specimen records
+
+Usage:
+
+	biodv rec.gz.georef -s|--service <service>
+		[-u|--uncertainty <number>] [<name>]
+
+Command rec.gz.georef sets georeference values from a given gazetteer
+service. The -u or --uncertainty option sets the maximum uncertainty in
+meters, the default value is 50000 (50 km). If set to 0, any uncertainty
+is accepted.
+
+When records are ambiguous, and uncertainty is set to 0, the record will
+be left ungeoreferenced. In other cases, the first returned record will
+be set as the point, and if distance to all other records in the set fall
+inside the uncertainty level, then the point will be assigned.
+
+Options are:
+
+    -s <service>
+    --service <service>
+      A required parameter. The gazetteer service to be used.
+
+    -u <number>
+    --uncertainty <number>
+      Sets the maximum uncertainty in meters. Default value: 50000
+      (i.e. 50 km).
+
+    <name>
+      If set, only the records for the indicated taxon (and its
+      descendants) will be georeferenced.
 
 Print record information
 
