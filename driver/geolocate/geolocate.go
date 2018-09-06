@@ -181,6 +181,7 @@ type point struct {
 }
 
 type property struct {
+	Precision               string
 	UncertaintyRadiusMeters uint
 	Debug                   string
 }
@@ -201,6 +202,9 @@ func (gz gzService) pointList(sc *biodv.GeoScan, param url.Values) {
 			}
 
 			for _, f := range resp.Features {
+				if f.Properties.Precision != "High" {
+					continue
+				}
 				p := geography.Position{
 					Lat:         f.Geometry.Coordinates[1],
 					Lon:         f.Geometry.Coordinates[0],
