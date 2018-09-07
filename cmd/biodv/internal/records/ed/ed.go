@@ -52,6 +52,10 @@ The commands understood by rec.ed are:
     prev
       Move to the previous specimen record.
 
+    rk [<taxon>]
+    rank [<taxon>]
+      Print the rank of a taxon.
+
     r [<record>]
     record [<record>]
       Move to the indicated specimen record.
@@ -115,6 +119,7 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
 	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd(i)})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
+	i.Add(&cmdapp.Cmd{"rk", "rank", "print taxon rank", rankHelp, rankCmd})
 	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
 }
@@ -310,6 +315,60 @@ func prevCmd(i *cmdapp.Inter) func(args []string) bool {
 		i.Prompt = prompt()
 		return false
 	}
+}
+
+var rankHelp = `
+Usage:
+    rk [<taxon>]
+    rank [<taxon>]
+Print the rank of a taxon. If no taxon is given it will print the
+rank of the current taxon. If the taxon is unranked, the rank of
+the most inmediate ranked parent will be printed in parenthesis.
+`
+
+func rankCmd(args []string) bool {
+	tx := tax
+	nm := strings.Join(args, " ")
+	switch nm {
+	case "", ".":
+		if tax == nil {
+			return false
+		}
+	case "/":
+		return false
+	case "..":
+		if tax == nil {
+			return false
+		}
+		tx, _ = txm.TaxID(tax.Parent())
+	default:
+		tx, _ = txm.TaxID(nm)
+	}
+	if tx == nil {
+		return false
+	}
+	r := tx.Rank()
+	if r == biodv.Unranked {
+		r = getRank(tx)
+		if r == biodv.Unranked {
+			fmt.Printf("%s\n", r)
+			return false
+		}
+		fmt.Printf("%s (%s)\n", biodv.Unranked, r)
+		return false
+	}
+	fmt.Printf("%s\n", r)
+	return false
+}
+
+func getRank(tx biodv.Taxon) biodv.Rank {
+	for tx != nil {
+		if tx.Rank() != biodv.Unranked {
+			return tx.Rank()
+		}
+		tx, _ = txm.TaxID(tx.Parent())
+	}
+	return biodv.Unranked
 }
 
 var recordHelp = `
