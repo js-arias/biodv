@@ -40,9 +40,13 @@ The commands understood by rec.ed are:
     list [<taxon>]
       List descendants of a taxon.
 
+    n
+    next
+      Move to the next specimen record.
+
     r [<record>]
     record [<record>]
-      Move to the indicated record.
+      Move to the indicated specimen record.
 
     q
     quit
@@ -99,6 +103,7 @@ func prompt() string {
 func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list descendant taxons", listHelp, listCmd})
+	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
 	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
@@ -191,6 +196,37 @@ Usage:
     quit
 Ends the program without saving any change.
 `
+
+var nextHelp = `
+Usage:
+    n
+    next
+Move the record to the next record of the list.
+`
+
+func nextCmd(i *cmdapp.Inter) func(args []string) bool {
+	return func(args []string) bool {
+		if tax == nil {
+			return false
+		}
+		if len(recLs) == 0 {
+			ls := recs.RecList(tax.ID())
+			if len(ls) == 0 {
+				return false
+			}
+			recLs = ls
+			curRec = 0
+		} else {
+			curRec++
+			if curRec >= len(recLs) {
+				recLs = nil
+				curRec = 0
+			}
+		}
+		i.Prompt = prompt()
+		return false
+	}
+}
 
 var recordHelp = `
 Usage:
