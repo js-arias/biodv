@@ -38,7 +38,7 @@ func TestAddCommand(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		cmd := getCmd(c.Name())
+		cmd := getCommand(c.Name())
 		if cmd == nil {
 			t.Errorf("command %q not found", c.Name())
 			continue
@@ -47,7 +47,7 @@ func TestAddCommand(t *testing.T) {
 			t.Errorf("command %q name = %q", c.Name(), cmd.Name())
 		}
 	}
-	if cmd := getCmd("fourth"); cmd != nil {
+	if cmd := getCommand("fourth"); cmd != nil {
 		t.Errorf("command %q should be nil", "fourth")
 	}
 }

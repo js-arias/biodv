@@ -5,9 +5,16 @@
 // This work is derived from the go tool source code
 // Copyright 2011 The Go Authors.  All rights reserved.
 
-// Package cmdapp implements a command line application
-// that host a set of commands
-// as in the go tool and git.
+// Package cmdapp implements a command line application.
+//
+// The default implementation is used to  implement
+// an application with a set of hosted commands
+// as in the go tool or git.
+//
+// It also provides the Inter type to implement
+// an interactive application with
+// its own commands read from the command line
+// such as the ed unix command.
 package cmdapp
 
 import (
@@ -44,7 +51,7 @@ func Add(c *Command) {
 		msg := fmt.Sprintf("cmdapp: Empty command name: %s", c.Short)
 		panic(msg)
 	}
-	if getCmd(name) != nil {
+	if getCommand(name) != nil {
 		msg := fmt.Sprintf("cmdapp: Repeated command name: %s %s", name, c.Short)
 		panic(msg)
 	}
@@ -53,8 +60,8 @@ func Add(c *Command) {
 	commands[name] = c
 }
 
-// GetCmd returns a command with a given name.
-func getCmd(name string) *Command {
+// GetCommand returns a command with a given name.
+func getCommand(name string) *Command {
 	name = strings.ToLower(name)
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -74,7 +81,7 @@ func Main() {
 		usage()
 	}
 
-	c := getCmd(args[0])
+	c := getCommand(args[0])
 	if c == nil || !c.runnable() {
 		fmt.Fprintf(os.Stderr, "%s: unknown subcommand %q\nRun '%s help' for usage.\n", Name, args[0], Name)
 		os.Exit(1)

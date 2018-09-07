@@ -65,7 +65,7 @@ func runHelp(c *Command, args []string) error {
 		return nil
 	}
 
-	cn := getCmd(arg)
+	cn := getCommand(arg)
 	if cn == nil {
 		return errors.Errorf("%s: unknown help topic '%s'. Run '%s help'.\n", c.Name(), arg, Name)
 	}

@@ -9,12 +9,8 @@
 package ed
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"os"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -31,8 +27,12 @@ Command rec.ed implements a simple interactive specimen record editor.
 
 The commands understood by rec.ed are:
 
-    quit
+   h [<command>]
+   help [<command>]
+     Print command help.
+
     q
+    quit
       Quit the program, without making any change.
 	`,
 	Run: run,
@@ -40,17 +40,6 @@ The commands understood by rec.ed are:
 
 func init() {
 	cmdapp.Add(cmd)
-}
-
-type command struct {
-	short string
-	long  string
-	about string
-	run   func() bool
-}
-
-var commands = []command{
-	{"q", "quit", "quit the program", func() bool { return true }},
 }
 
 func run(c *cmdapp.Command, args []string) error {
@@ -66,62 +55,28 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 	var rec *records.Record
 
-	// Command loop
-	r := bufio.NewReader(os.Stdin)
-	for {
-		prompt(tax, rec)
-		cmdLine, err := r.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			fmt.Printf("error: %v\n", err)
-		}
-		cmds := strings.Fields(cmdLine)
-		if len(cmds) == 0 {
-			continue
-		}
-		cmd := strings.ToLower(cmds[0])
-		var fn func() bool
-		for _, c := range commands {
-			if c.short == cmd || c.long == cmd {
-				fn = c.run
-				break
-			}
-		}
-		if fn == nil {
-			if cmd == "h" || cmd == "help" {
-				help()
-				continue
-			}
-			if x, _ := utf8.DecodeRuneInString(cmds[0]); x == '#' {
-				continue
-			}
-			fmt.Printf("error: unknown command '%s'\n", cmds[0])
-			continue
-		}
-		if fn() {
-			break
-		}
-	}
+	i := cmdapp.NewInter(os.Stdin)
+	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
+	i.Prompt = prompt(tax, rec)
+
+	i.Loop()
 	return nil
 }
 
-func prompt(tax biodv.Taxon, rec *records.Record) {
-	if tax == nil {
-		fmt.Printf("root:")
-	} else {
-		fmt.Printf("%s:", tax.Name())
+func prompt(tax biodv.Taxon, rec *records.Record) string {
+	var p = "root:"
+	if tax != nil {
+		p = fmt.Sprintf("%s:", tax.Name())
 	}
-	if rec == nil {
-		fmt.Printf(" ")
-	} else {
-		fmt.Printf("%s: ", rec.ID())
+	if rec != nil {
+		p += fmt.Sprintf("%s:", rec.ID())
 	}
+	return p
 }
 
-func help() {
-	for _, c := range commands {
-		fmt.Printf("    %s, %-16s %s\n", c.short, c.long, c.about)
-	}
-}
+var quitHelp = `
+Usage:
+    q
+    quit
+Ends the program without saving any change.
+`
