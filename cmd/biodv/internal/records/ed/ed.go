@@ -40,6 +40,10 @@ The commands understood by rec.ed are:
     help [<command>]
       Print command help.
 
+    l [<taxon>]
+    list [<taxon>]
+      List the IDs of the specimen records of a given taxon.
+
     n
     next
       Move to the next specimen record.
@@ -107,6 +111,7 @@ func prompt() string {
 func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
+	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
 	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd(i)})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
@@ -191,6 +196,49 @@ func descCmd(args []string) bool {
 	}
 	for _, c := range ls {
 		fmt.Printf("%s\n", c.Name())
+	}
+	return false
+}
+
+var listHelp = `
+Usage:
+    l [<taxon>]
+    list [<taxon>]
+List the IDs records of the records of the given taxon. If no taxon
+is given, it will list the records of the current taxon.
+`
+
+func listCmd(args []string) bool {
+	var ls []*records.Record
+	nm := strings.Join(args, " ")
+	switch nm {
+	case "", ".":
+		if tax == nil {
+			return false
+		}
+		ls = recLs
+		if len(recLs) == 0 {
+			ls = recs.RecList(tax.ID())
+		}
+		if len(ls) == 0 {
+			return false
+		}
+	case "/":
+		return false
+	case "..":
+		if tax == nil {
+			return false
+		}
+		p := tax.Parent()
+		if p == "" {
+			return false
+		}
+		ls = recs.RecList(p)
+	default:
+		ls = recs.RecList(nm)
+	}
+	for _, r := range ls {
+		fmt.Printf("%s\n", r.ID())
 	}
 	return false
 }
