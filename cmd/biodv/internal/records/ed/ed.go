@@ -32,13 +32,13 @@ The commands understood by rec.ed are:
     count [<taxon>]
       Print the number of specimen records of a given taxon.
 
+    d [<taxon>]
+    desc [<taxon>]
+      List descendants of a taxon.
+
     h [<command>]
     help [<command>]
       Print command help.
-
-    l [<taxon>]
-    list [<taxon>]
-      List descendants of a taxon.
 
     n
     next
@@ -106,7 +106,7 @@ func prompt() string {
 
 func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
-	i.Add(&cmdapp.Cmd{"l", "list", "list descendant taxons", listHelp, listCmd})
+	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
 	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd(i)})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
@@ -154,16 +154,16 @@ func countCmd(args []string) bool {
 	return false
 }
 
-var listHelp = `
+var descHelp = `
 Usage:
-    l [<taxon>]
-    list [<taxon>]
+    d [<taxon>]
+    desc [<taxon>]
 Without parameters shows the list of descendants of the current taxon.
 If a taxon is given, it will show the descendants of the indicated
 taxon.
 `
 
-func listCmd(args []string) bool {
+func descCmd(args []string) bool {
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
