@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -48,9 +49,15 @@ The commands understood by rec.ed are:
     next
       Move to the next specimen record.
 
+    nv
+      Shorthand for 'next' and 'view'.
+
     p
     prev
       Move to the previous specimen record.
+
+    pv
+      Shorthand for 'prev' and 'view'.
 
     rk [<taxon>]
     rank [<taxon>]
@@ -67,6 +74,10 @@ The commands understood by rec.ed are:
     t <taxon>
     taxon <taxon>
       Move to the indicated taxon.
+
+    v [<record>]
+    view [<record>]
+      Show specimen record data.
 	`,
 	Run: run,
 }
@@ -117,11 +128,14 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
+	i.Add(&cmdapp.Cmd{"", "nv", "shorthand for 'next' and 'view'", nvHelp, nvCmd(i)})
 	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd(i)})
+	i.Add(&cmdapp.Cmd{"", "pv", "shorthand for 'prev' and 'view'", pvHelp, pvCmd(i)})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
 	i.Add(&cmdapp.Cmd{"rk", "rank", "print taxon rank", rankHelp, rankCmd})
 	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
+	i.Add(&cmdapp.Cmd{"v", "view", "print specimen record data", viewHelp, viewCmd})
 }
 
 var countHelp = `
@@ -286,6 +300,20 @@ func nextCmd(i *cmdapp.Inter) func(args []string) bool {
 	}
 }
 
+var nvHelp = `
+Usage:
+    nv
+Perform 'next' and then 'view' commands.
+`
+
+func nvCmd(i *cmdapp.Inter) func(args []string) bool {
+	nx := nextCmd(i)
+	return func(args []string) bool {
+		nx(nil)
+		return viewCmd(nil)
+	}
+}
+
 var prevHelp = `
 Usage:
     p
@@ -314,6 +342,20 @@ func prevCmd(i *cmdapp.Inter) func(args []string) bool {
 		}
 		i.Prompt = prompt()
 		return false
+	}
+}
+
+var pvHelp = `
+Usage:
+    pv
+Perform 'prev' and the 'view' command.
+`
+
+func pvCmd(i *cmdapp.Inter) func(args []string) bool {
+	pr := nextCmd(i)
+	return func(args []string) bool {
+		pr(nil)
+		return viewCmd(nil)
 	}
 }
 
@@ -448,4 +490,62 @@ func taxonCmd(i *cmdapp.Inter) func(args []string) bool {
 		i.Prompt = prompt()
 		return false
 	}
+}
+
+var viewHelp = `
+Usage:
+    v <record>
+    view <record>
+Shows the information stored on the indicated record. If no record
+is given, it will show the current record.
+`
+
+func viewCmd(args []string) bool {
+	var rec *records.Record
+	id := strings.Join(args, " ")
+	if id == "" {
+		if tax == nil {
+			return false
+		}
+		if len(recLs) == 0 {
+			return false
+		}
+		rec = recLs[curRec]
+	} else {
+		rec = recs.Record(id)
+		if rec == nil {
+			return false
+		}
+	}
+
+	fmt.Printf("record:\t%s\n", rec.ID())
+	fmt.Printf("taxon:\t%s\n", rec.Taxon())
+	fmt.Printf("basis:\t%s\n", rec.Basis())
+	ev := rec.CollEvent()
+	fmt.Printf("date:\t%s\n", ev.Date.Format(time.RFC3339))
+	fmt.Printf("country:\t%s\n", ev.Admin.Country)
+	fmt.Printf("state:\t%s\n", ev.Admin.State)
+	fmt.Printf("county:\t%s\n", ev.Admin.County)
+	fmt.Printf("locality:\t%s\n", ev.Locality)
+	fmt.Printf("collector:\t%s\n", ev.Collector)
+	fmt.Printf("z\t%d\n", ev.Z)
+	geo := rec.GeoRef()
+	if !geo.IsValid() {
+		fmt.Printf("latlon:\tNA\n")
+		fmt.Printf("elevation:\t0\n")
+		fmt.Printf("uncertainty:\t0\n")
+		fmt.Printf("geosource:\n")
+		fmt.Printf("validation:\n")
+	} else {
+		fmt.Printf("latlon:\t%f %f\n", geo.Lat, geo.Lon)
+		fmt.Printf("elevation:\t%d\n", geo.Elevation)
+		fmt.Printf("uncertainty:\t%d\n", geo.Uncertainty)
+		fmt.Printf("geosource:\t%s\n", geo.Source)
+		fmt.Printf("validation:\t%sn", geo.Validation)
+	}
+	for _, k := range rec.Keys() {
+		v := rec.Value(k)
+		fmt.Printf("%s:\t%s\n", k, v)
+	}
+	return false
 }
