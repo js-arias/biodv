@@ -28,13 +28,25 @@ Command rec.ed implements a simple interactive specimen record editor.
 
 The commands understood by rec.ed are:
 
-   h [<command>]
-   help [<command>]
-     Print command help.
+    c [<taxon>]
+    count [<taxon>]
+      Print the number of specimen records of a given taxon.
+
+    h [<command>]
+    help [<command>]
+      Print command help.
+
+    l [<taxon>]
+    list [<taxon>]
+      List descendants of a taxon.
 
     q
     quit
       Quit the program, without making any change.
+
+    t <taxon>
+    taxon <taxon>
+      Move to the indicated taxon.
 	`,
 	Run: run,
 }
@@ -45,6 +57,7 @@ func init() {
 
 var txm biodv.Taxonomy
 var tax biodv.Taxon
+var recs *records.DB
 var rec *records.Record
 
 func run(c *cmdapp.Command, args []string) error {
@@ -54,7 +67,7 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	_, err = records.Open("")
+	recs, err = records.Open("")
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
@@ -79,6 +92,7 @@ func prompt() string {
 }
 
 func addCommands(i *cmdapp.Inter) {
+	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list descendant taxons", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
@@ -164,4 +178,44 @@ func taxonCmd(i *cmdapp.Inter) func(args []string) bool {
 		i.Prompt = prompt()
 		return false
 	}
+}
+
+var countHelp = `
+Usage:
+    c [<taxon>]
+    count [<taxon>]
+Indicates the number of specimen records attached to the indiated
+taxon (not including descendants). If no taxon is given, it will use
+the current taxon.
+`
+
+func countCmd(args []string) bool {
+	nm := strings.Join(args, " ")
+	switch nm {
+	case "", ".":
+		if tax == nil {
+			return false
+		}
+		nm = tax.ID()
+	case "/":
+		return false
+	case "..":
+		if tax == nil {
+			return false
+		}
+		nm = tax.Parent()
+		if nm == "" {
+			return false
+		}
+	default:
+		nt, _ := txm.TaxID(nm)
+		if nt == nil {
+			return false
+		}
+		nm = nt.ID()
+	}
+
+	ls := recs.RecList(nm)
+	fmt.Printf("%d\n", len(ls))
+	return false
 }
