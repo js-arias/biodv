@@ -45,6 +45,7 @@ func init() {
 
 var txm biodv.Taxonomy
 var tax biodv.Taxon
+var rec *records.Record
 
 func run(c *cmdapp.Command, args []string) error {
 	var err error
@@ -57,17 +58,16 @@ func run(c *cmdapp.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
-	var rec *records.Record
 
 	i := cmdapp.NewInter(os.Stdin)
 	addCommands(i)
-	i.Prompt = prompt(tax, rec)
+	i.Prompt = prompt()
 
 	i.Loop()
 	return nil
 }
 
-func prompt(tax biodv.Taxon, rec *records.Record) string {
+func prompt() string {
 	var p = "root:"
 	if tax != nil {
 		p = fmt.Sprintf("%s:", tax.Name())
@@ -81,6 +81,7 @@ func prompt(tax biodv.Taxon, rec *records.Record) string {
 func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"l", "list", "list descendant taxons", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
+	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
 }
 
 var quitHelp = `
@@ -101,18 +102,19 @@ taxon.
 
 func listCmd(args []string) bool {
 	nm := strings.Join(args, " ")
-	if nm == "" {
+	switch nm {
+	case "", ".":
 		if tax != nil {
 			nm = tax.ID()
 		}
-	} else if nm == "/" {
+	case "/":
 		nm = ""
-	} else if nm == "." {
+	case "..":
 		if tax == nil {
 			return false
 		}
 		nm = tax.Parent()
-	} else {
+	default:
 		nt, _ := txm.TaxID(nm)
 		if nt == nil {
 			return false
@@ -128,4 +130,38 @@ func listCmd(args []string) bool {
 		fmt.Printf("%s\n", c.Name())
 	}
 	return false
+}
+
+var taxonHelp = `
+Usage:
+    t <taxon>
+    taxon <taxon>
+Changes the current taxon to the indicated taxon. To move to a
+parent use '..' to move to a parent, or use '/' to move to the
+root of the taxonomy.
+`
+
+func taxonCmd(i *cmdapp.Inter) func(args []string) bool {
+	return func(args []string) bool {
+		nm := strings.Join(args, " ")
+		switch nm {
+		case "", ".":
+			return false
+		case "/":
+			tax = nil
+		case "..":
+			if tax == nil {
+				return false
+			}
+			tax, _ = txm.TaxID(tax.Parent())
+		default:
+			nt, _ := txm.TaxID(nm)
+			if nt == nil {
+				return false
+			}
+			tax = nt
+		}
+		i.Prompt = prompt()
+		return false
+	}
 }
