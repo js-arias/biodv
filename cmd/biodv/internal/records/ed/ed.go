@@ -44,6 +44,10 @@ The commands understood by rec.ed are:
     next
       Move to the next specimen record.
 
+    p
+    prev
+      Move to the previous specimen record.
+
     r [<record>]
     record [<record>]
       Move to the indicated specimen record.
@@ -104,6 +108,7 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list descendant taxons", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
+	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd(i)})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
 	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
@@ -219,6 +224,37 @@ func nextCmd(i *cmdapp.Inter) func(args []string) bool {
 		} else {
 			curRec++
 			if curRec >= len(recLs) {
+				recLs = nil
+				curRec = 0
+			}
+		}
+		i.Prompt = prompt()
+		return false
+	}
+}
+
+var prevHelp = `
+Usage:
+    p
+    prev
+Move the record to the previous record of the list.
+`
+
+func prevCmd(i *cmdapp.Inter) func(args []string) bool {
+	return func(args []string) bool {
+		if tax == nil {
+			return false
+		}
+		if len(recLs) == 0 {
+			ls := recs.RecList(tax.ID())
+			if len(ls) == 0 {
+				return false
+			}
+			recLs = ls
+			curRec = len(ls) - 1
+		} else {
+			curRec--
+			if curRec < 0 {
 				recLs = nil
 				curRec = 0
 			}
