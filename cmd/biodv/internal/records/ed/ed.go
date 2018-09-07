@@ -40,6 +40,10 @@ The commands understood by rec.ed are:
     list [<taxon>]
       List descendants of a taxon.
 
+    r [<record>]
+    record [<record>]
+      Move to the indicated record.
+
     q
     quit
       Quit the program, without making any change.
@@ -58,7 +62,8 @@ func init() {
 var txm biodv.Taxonomy
 var tax biodv.Taxon
 var recs *records.DB
-var rec *records.Record
+var recLs []*records.Record
+var curRec int
 
 func run(c *cmdapp.Command, args []string) error {
 	var err error
@@ -85,8 +90,8 @@ func prompt() string {
 	if tax != nil {
 		p = fmt.Sprintf("%s:", tax.Name())
 	}
-	if rec != nil {
-		p += fmt.Sprintf("%s:", rec.ID())
+	if len(recLs) > 0 {
+		p += fmt.Sprintf("%s:", recLs[curRec].ID())
 	}
 	return p
 }
@@ -95,15 +100,49 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list descendant taxons", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
+	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
 }
 
-var quitHelp = `
+var countHelp = `
 Usage:
-    q
-    quit
-Ends the program without saving any change.
+    c [<taxon>]
+    count [<taxon>]
+Indicates the number of specimen records attached to the indiated
+taxon (not including descendants). If no taxon is given, it will use
+the current taxon.
 `
+
+func countCmd(args []string) bool {
+	nm := strings.Join(args, " ")
+	switch nm {
+	case "", ".":
+		if tax == nil {
+			return false
+		}
+		nm = tax.ID()
+	case "/":
+		return false
+	case "..":
+		if tax == nil {
+			return false
+		}
+		nm = tax.Parent()
+		if nm == "" {
+			return false
+		}
+	default:
+		nt, _ := txm.TaxID(nm)
+		if nt == nil {
+			return false
+		}
+		nm = nt.ID()
+	}
+
+	ls := recs.RecList(nm)
+	fmt.Printf("%d\n", len(ls))
+	return false
+}
 
 var listHelp = `
 Usage:
@@ -146,6 +185,56 @@ func listCmd(args []string) bool {
 	return false
 }
 
+var quitHelp = `
+Usage:
+    q
+    quit
+Ends the program without saving any change.
+`
+
+var recordHelp = `
+Usage:
+    r [<record>]
+    record [<record>]
+Change the current record to the indicated record. If no record ID
+is given, it will use the first record of the current
+taxon.
+`
+
+func recordCmd(i *cmdapp.Inter) func(args []string) bool {
+	return func(args []string) bool {
+		id := strings.Join(args, " ")
+		if id == "" {
+			recLs = recs.RecList(tax.ID())
+			curRec = 0
+			if len(recLs) == 0 {
+				return false
+			}
+		} else {
+			rec := recs.Record(id)
+			if rec == nil {
+				return false
+			}
+			if rec.Taxon() != tax.ID() {
+				nt, _ := txm.TaxID(rec.Taxon())
+				if nt == nil {
+					return false
+				}
+				tax = nt
+			}
+			recLs = recs.RecList(tax.ID())
+			for i, r := range recLs {
+				if r.ID() == rec.ID() {
+					curRec = i
+					break
+				}
+			}
+		}
+		i.Prompt = prompt()
+		return false
+	}
+}
+
 var taxonHelp = `
 Usage:
     t <taxon>
@@ -175,47 +264,9 @@ func taxonCmd(i *cmdapp.Inter) func(args []string) bool {
 			}
 			tax = nt
 		}
+		recLs = nil
+		curRec = 0
 		i.Prompt = prompt()
 		return false
 	}
-}
-
-var countHelp = `
-Usage:
-    c [<taxon>]
-    count [<taxon>]
-Indicates the number of specimen records attached to the indiated
-taxon (not including descendants). If no taxon is given, it will use
-the current taxon.
-`
-
-func countCmd(args []string) bool {
-	nm := strings.Join(args, " ")
-	switch nm {
-	case "", ".":
-		if tax == nil {
-			return false
-		}
-		nm = tax.ID()
-	case "/":
-		return false
-	case "..":
-		if tax == nil {
-			return false
-		}
-		nm = tax.Parent()
-		if nm == "" {
-			return false
-		}
-	default:
-		nt, _ := txm.TaxID(nm)
-		if nt == nil {
-			return false
-		}
-		nm = nt.ID()
-	}
-
-	ls := recs.RecList(nm)
-	fmt.Printf("%d\n", len(ls))
-	return false
 }
