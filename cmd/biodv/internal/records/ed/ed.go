@@ -87,6 +87,10 @@ The commands understood by rec.ed are:
     v [<record>]
     view [<record>]
       Show specimen record data.
+
+    w
+    write
+      Write the database on the hard disk.
 	`,
 	Run: run,
 }
@@ -147,6 +151,7 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"", "sv", "shorthand for 'set' and 'view'", svHelp, svCmd})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
 	i.Add(&cmdapp.Cmd{"v", "view", "print specimen record data", viewHelp, viewCmd})
+	i.Add(&cmdapp.Cmd{"w", "write", "write the database on the hard disk", writeHelp, writeCmd})
 }
 
 var countHelp = `
@@ -777,6 +782,21 @@ func viewCmd(args []string) bool {
 	for _, k := range rec.Keys() {
 		v := rec.Value(k)
 		fmt.Printf("%s:\t%s\n", k, v)
+	}
+	return false
+}
+
+var writeHelp = `
+Usage:
+    w
+    write
+Write all changes made to the database since the start of the
+edition season, or the last writing.
+`
+
+func writeCmd(args []string) bool {
+	if err := recs.Commit(); err != nil {
+		fmt.Printf("error: %v\n", err)
 	}
 	return false
 }
