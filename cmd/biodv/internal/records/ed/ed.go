@@ -51,6 +51,10 @@ The commands understood by rec.ed are:
     list [<taxon>]
       List the IDs of the specimen records of a given taxon.
 
+    m <taxon>
+    move <taxon>
+      Move a specimen record to a taxon.
+
     n
     next
       Move to the next specimen record.
@@ -144,6 +148,7 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
 	i.Add(&cmdapp.Cmd{"e", "exit", "shorthand for 'write' and 'quit'", exitHelp, exitCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
+	i.Add(&cmdapp.Cmd{"m", "move", "move a specimen record to a taxon", moveHelp, moveCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd})
 	i.Add(&cmdapp.Cmd{"", "nv", "shorthand for 'next' and 'view'", nvHelp, nvCmd})
 	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd})
@@ -294,12 +299,56 @@ func listCmd(args []string) bool {
 	return false
 }
 
-var quitHelp = `
+var moveHelp = `
 Usage:
-    q
-    quit
-Ends the program without saving any change.
+    m <taxon>
+    move <taxon>
+Changes the assignation of the current specimen record to the
+indicated taxon. The taxon must be exist in the taxonomy. The
+current record will be set to the current specimen record,
+in the new taxon assignation.
 `
+
+func moveCmd(args []string) bool {
+	if recLs == nil {
+		fmt.Printf("error: a record should be set\n")
+		return false
+	}
+	if len(args) < 1 {
+		fmt.Printf("error: expecing a taxon\n")
+		return false
+	}
+
+	var nt biodv.Taxon
+
+	nm := strings.Join(args, " ")
+	switch nm {
+	case "", ".":
+		return false
+	case "/":
+		fmt.Printf("error: specimen records can not be moved to the root\n")
+		return false
+	case "..":
+		if tax == nil {
+			fmt.Printf("error: specimen records can not be moved to the root\n")
+			return false
+		}
+		nt, _ = txm.TaxID(tax.Parent())
+	default:
+		nt, _ = txm.TaxID(nm)
+	}
+	if nt == nil {
+		fmt.Printf("error: taxon '%s' not in database\n", nm)
+		return false
+	}
+
+	id := recLs[curRec].ID()
+	if err := recs.Move(id, nt.ID()); err != nil {
+		fmt.Printf("error: %v\n", err)
+		return false
+	}
+	return recordCmd([]string{id})
+}
 
 var nextHelp = `
 Usage:
@@ -378,6 +427,13 @@ func pvCmd(args []string) bool {
 	prevCmd(nil)
 	return viewCmd(nil)
 }
+
+var quitHelp = `
+Usage:
+    q
+    quit
+Ends the program without saving any change.
+`
 
 var rankHelp = `
 Usage:
