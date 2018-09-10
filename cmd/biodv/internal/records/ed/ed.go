@@ -35,6 +35,10 @@ The commands understood by rec.ed are:
     count [<taxon>]
       Print the number of specimen records of a given taxon.
 
+    del [<record>]
+    delete [<record>]
+      Delete an specimen record.
+
     d [<taxon>]
     desc [<taxon>]
       List descendants of a taxon.
@@ -145,6 +149,7 @@ func prompt() string {
 
 func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
+	i.Add(&cmdapp.Cmd{"del", "delete", "delete an specimen record", deleteHelp, deleteCmd})
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
 	i.Add(&cmdapp.Cmd{"e", "exit", "shorthand for 'write' and 'quit'", exitHelp, exitCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
@@ -200,6 +205,50 @@ func countCmd(args []string) bool {
 
 	ls := recs.RecList(nm)
 	fmt.Printf("%d\n", len(ls))
+	return false
+}
+
+var deleteHelp = `
+Usage:
+    del [<record>]
+    delete [<record>]
+Removes the specified record from the database. If no record is given
+it will remove the current record.
+`
+
+func deleteCmd(args []string) bool {
+	id := strings.Join(args, " ")
+	if recLs == nil {
+		if id == "" {
+			return false
+		}
+		if recs.Record(id) == nil {
+			return false
+		}
+		recs.Delete(id)
+		return false
+	}
+
+	if id != "" {
+		rec := recs.Record(id)
+		if rec.Taxon() != tax.ID() {
+			recs.Delete(id)
+			return false
+		}
+		curID := recLs[curRec].ID()
+		recs.Delete(id)
+		return recordCmd([]string{curID})
+	}
+
+	id = recLs[curRec].ID()
+	recs.Delete(id)
+	ls := recs.RecList(tax.ID())
+	if len(ls) == 0 || curRec >= len(ls) {
+		recLs = nil
+		curRec = 0
+		return false
+	}
+	recLs = ls
 	return false
 }
 
