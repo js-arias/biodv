@@ -121,9 +121,8 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	i := cmdapp.NewInter(os.Stdin)
+	i := cmdapp.NewInter(os.Stdin, prompt)
 	addCommands(i)
-	i.Prompt = prompt()
 
 	i.Loop()
 	return nil
@@ -145,16 +144,16 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
 	i.Add(&cmdapp.Cmd{"e", "exit", "shorthand for 'write' and 'quit'", exitHelp, exitCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
-	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
-	i.Add(&cmdapp.Cmd{"", "nv", "shorthand for 'next' and 'view'", nvHelp, nvCmd(i)})
-	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd(i)})
-	i.Add(&cmdapp.Cmd{"", "pv", "shorthand for 'prev' and 'view'", pvHelp, pvCmd(i)})
+	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd})
+	i.Add(&cmdapp.Cmd{"", "nv", "shorthand for 'next' and 'view'", nvHelp, nvCmd})
+	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd})
+	i.Add(&cmdapp.Cmd{"", "pv", "shorthand for 'prev' and 'view'", pvHelp, pvCmd})
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
 	i.Add(&cmdapp.Cmd{"rk", "rank", "print taxon rank", rankHelp, rankCmd})
-	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
+	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd})
 	i.Add(&cmdapp.Cmd{"s", "set", "set a value of an specimen record", setHelp, setCmd})
 	i.Add(&cmdapp.Cmd{"", "sv", "shorthand for 'set' and 'view'", svHelp, svCmd})
-	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
+	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd})
 	i.Add(&cmdapp.Cmd{"v", "view", "print specimen record data", viewHelp, viewCmd})
 	i.Add(&cmdapp.Cmd{"w", "write", "write the database on the hard disk", writeHelp, writeCmd})
 }
@@ -309,28 +308,25 @@ Usage:
 Move the record to the next record of the list.
 `
 
-func nextCmd(i *cmdapp.Inter) func(args []string) bool {
-	return func(args []string) bool {
-		if tax == nil {
-			return false
-		}
-		if len(recLs) == 0 {
-			ls := recs.RecList(tax.ID())
-			if len(ls) == 0 {
-				return false
-			}
-			recLs = ls
-			curRec = 0
-		} else {
-			curRec++
-			if curRec >= len(recLs) {
-				recLs = nil
-				curRec = 0
-			}
-		}
-		i.Prompt = prompt()
+func nextCmd(args []string) bool {
+	if tax == nil {
 		return false
 	}
+	if len(recLs) == 0 {
+		ls := recs.RecList(tax.ID())
+		if len(ls) == 0 {
+			return false
+		}
+		recLs = ls
+		curRec = 0
+	} else {
+		curRec++
+		if curRec >= len(recLs) {
+			recLs = nil
+			curRec = 0
+		}
+	}
+	return false
 }
 
 var nvHelp = `
@@ -339,12 +335,9 @@ Usage:
 Perform 'next' and then 'view' commands.
 `
 
-func nvCmd(i *cmdapp.Inter) func(args []string) bool {
-	nx := nextCmd(i)
-	return func(args []string) bool {
-		nx(nil)
-		return viewCmd(nil)
-	}
+func nvCmd(args []string) bool {
+	nextCmd(nil)
+	return viewCmd(nil)
 }
 
 var prevHelp = `
@@ -354,28 +347,25 @@ Usage:
 Move the record to the previous record of the list.
 `
 
-func prevCmd(i *cmdapp.Inter) func(args []string) bool {
-	return func(args []string) bool {
-		if tax == nil {
-			return false
-		}
-		if len(recLs) == 0 {
-			ls := recs.RecList(tax.ID())
-			if len(ls) == 0 {
-				return false
-			}
-			recLs = ls
-			curRec = len(ls) - 1
-		} else {
-			curRec--
-			if curRec < 0 {
-				recLs = nil
-				curRec = 0
-			}
-		}
-		i.Prompt = prompt()
+func prevCmd(args []string) bool {
+	if tax == nil {
 		return false
 	}
+	if len(recLs) == 0 {
+		ls := recs.RecList(tax.ID())
+		if len(ls) == 0 {
+			return false
+		}
+		recLs = ls
+		curRec = len(ls) - 1
+	} else {
+		curRec--
+		if curRec < 0 {
+			recLs = nil
+			curRec = 0
+		}
+	}
+	return false
 }
 
 var pvHelp = `
@@ -384,12 +374,9 @@ Usage:
 Perform 'prev' and the 'view' command.
 `
 
-func pvCmd(i *cmdapp.Inter) func(args []string) bool {
-	pr := nextCmd(i)
-	return func(args []string) bool {
-		pr(nil)
-		return viewCmd(nil)
-	}
+func pvCmd(args []string) bool {
+	prevCmd(nil)
+	return viewCmd(nil)
 }
 
 var rankHelp = `
@@ -455,38 +442,35 @@ is given, it will use the first record of the current
 taxon.
 `
 
-func recordCmd(i *cmdapp.Inter) func(args []string) bool {
-	return func(args []string) bool {
-		id := strings.Join(args, " ")
-		if id == "" {
-			recLs = recs.RecList(tax.ID())
-			curRec = 0
-			if len(recLs) == 0 {
+func recordCmd(args []string) bool {
+	id := strings.Join(args, " ")
+	if id == "" {
+		recLs = recs.RecList(tax.ID())
+		curRec = 0
+		if len(recLs) == 0 {
+			return false
+		}
+	} else {
+		rec := recs.Record(id)
+		if rec == nil {
+			return false
+		}
+		if rec.Taxon() != tax.ID() {
+			nt, _ := txm.TaxID(rec.Taxon())
+			if nt == nil {
 				return false
 			}
-		} else {
-			rec := recs.Record(id)
-			if rec == nil {
-				return false
-			}
-			if rec.Taxon() != tax.ID() {
-				nt, _ := txm.TaxID(rec.Taxon())
-				if nt == nil {
-					return false
-				}
-				tax = nt
-			}
-			recLs = recs.RecList(tax.ID())
-			for i, r := range recLs {
-				if r.ID() == rec.ID() {
-					curRec = i
-					break
-				}
+			tax = nt
+		}
+		recLs = recs.RecList(tax.ID())
+		for i, r := range recLs {
+			if r.ID() == rec.ID() {
+				curRec = i
+				break
 			}
 		}
-		i.Prompt = prompt()
-		return false
 	}
+	return false
 }
 
 var setHelp = `
@@ -718,31 +702,28 @@ parent use '..' to move to a parent, or use '/' to move to the
 root of the taxonomy.
 `
 
-func taxonCmd(i *cmdapp.Inter) func(args []string) bool {
-	return func(args []string) bool {
-		nm := strings.Join(args, " ")
-		switch nm {
-		case "", ".":
-			return false
-		case "/":
-			tax = nil
-		case "..":
-			if tax == nil {
-				return false
-			}
-			tax, _ = txm.TaxID(tax.Parent())
-		default:
-			nt, _ := txm.TaxID(nm)
-			if nt == nil {
-				return false
-			}
-			tax = nt
-		}
-		recLs = nil
-		curRec = 0
-		i.Prompt = prompt()
+func taxonCmd(args []string) bool {
+	nm := strings.Join(args, " ")
+	switch nm {
+	case "", ".":
 		return false
+	case "/":
+		tax = nil
+	case "..":
+		if tax == nil {
+			return false
+		}
+		tax, _ = txm.TaxID(tax.Parent())
+	default:
+		nt, _ := txm.TaxID(nm)
+		if nt == nil {
+			return false
+		}
+		tax = nt
 	}
+	recLs = nil
+	curRec = 0
+	return false
 }
 
 var viewHelp = `

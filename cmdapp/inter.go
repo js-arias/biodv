@@ -21,13 +21,14 @@ import (
 // Inter implements an interactive command line,
 // as in the ed unix command.
 type Inter struct {
-	// Prompt is the prompt printed
+	// Prompt is the function
+	// that return the prompt to print
 	// when expecting a command.
-	Prompt string
+	prompt func() string
 
 	// R is the reader used
 	// for the command input.
-	R io.Reader
+	r io.Reader
 
 	mu   sync.Mutex
 	cmds map[string]*Cmd
@@ -35,13 +36,17 @@ type Inter struct {
 
 // NewInter returns a new command interpreter,
 // ready to use.
-func NewInter(r io.Reader) *Inter {
+func NewInter(r io.Reader, prompt func() string) *Inter {
 	if r == nil {
 		r = os.Stdin
 	}
+	if prompt == nil {
+		prompt = func() string { return "$" }
+	}
 	i := &Inter{
-		R:    r,
-		cmds: make(map[string]*Cmd),
+		r:      r,
+		prompt: prompt,
+		cmds:   make(map[string]*Cmd),
 	}
 	hlp := &Cmd{
 		Abrev: "h",
@@ -133,9 +138,9 @@ type Cmd struct {
 // is '#'
 // (a handy way to introduce comments).
 func (i *Inter) Loop() {
-	r := bufio.NewReader(i.R)
+	r := bufio.NewReader(i.r)
 	for {
-		fmt.Printf("%s ", i.Prompt)
+		fmt.Printf("%s ", i.prompt())
 		line, err := r.ReadString('\n')
 		if err == io.EOF {
 			return

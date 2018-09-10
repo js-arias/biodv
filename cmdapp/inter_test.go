@@ -15,7 +15,7 @@ func TestAddCmd(t *testing.T) {
 		{Name: "   name with spaces "},
 		{Name: "ok"},
 	}
-	i := NewInter(nil)
+	i := NewInter(nil, nil)
 	for _, c := range cases {
 		i.Add(c)
 	}
@@ -47,7 +47,7 @@ func TestAddCmdPanic(t *testing.T) {
 		{Name: "1 start with a number"},
 	}
 
-	i := NewInter(nil)
+	i := NewInter(nil, nil)
 	for j, c := range cases {
 		if j == 0 {
 			i.Add(c)
