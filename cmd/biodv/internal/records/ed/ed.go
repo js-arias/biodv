@@ -11,11 +11,13 @@ package ed
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
+	"github.com/js-arias/biodv/geography"
 	"github.com/js-arias/biodv/records"
 
 	"github.com/pkg/errors"
@@ -59,6 +61,10 @@ The commands understood by rec.ed are:
     pv
       Shorthand for 'prev' and 'view'.
 
+    q
+    quit
+      Quit the program, without making any change.
+
     rk [<taxon>]
     rank [<taxon>]
       Print the rank of a taxon.
@@ -67,9 +73,12 @@ The commands understood by rec.ed are:
     record [<record>]
       Move to the indicated specimen record.
 
-    q
-    quit
-      Quit the program, without making any change.
+    s <key> <value>
+    set <key> <value>
+      Set a value of an specimen record.
+
+    sv <key> <value>
+      Shorthand for 'set' and 'view'.
 
     t <taxon>
     taxon <taxon>
@@ -134,6 +143,8 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
 	i.Add(&cmdapp.Cmd{"rk", "rank", "print taxon rank", rankHelp, rankCmd})
 	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd(i)})
+	i.Add(&cmdapp.Cmd{"s", "set", "set a value of an specimen record", setHelp, setCmd})
+	i.Add(&cmdapp.Cmd{"", "sv", "shorthand for 'set' and 'view'", svHelp, svCmd})
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd(i)})
 	i.Add(&cmdapp.Cmd{"v", "view", "print specimen record data", viewHelp, viewCmd})
 }
@@ -456,6 +467,226 @@ func recordCmd(i *cmdapp.Inter) func(args []string) bool {
 	}
 }
 
+var setHelp = `
+Usage:
+    s <key> <value>
+    set <key> <value>
+Set a value of a field of the current specimen record. In general
+the format value will depend on the field.
+
+Any key can be stored, but the recognized keys (and their expected
+values are):
+        catalog      a catalog code, usually in the form
+                     <institution code>:<collection code>:<catalog number>.
+        basis        basis of record, it can be:
+                       unknown      if the basis is unknown
+                       preserved    if it is a preserved (museum)
+                                    specimen
+                       fossil       if it is a fossil (museum) specimen
+                       observation  if the record is based on a human
+                                    observation
+                       machine      if the record is based on a machine
+                                    sensor reading
+        date         the sampling date, it must be in the RFC3339 format,
+                     e.g. '2006-01-02T15:04:05Z07:00'
+        country      the country of the sample, a two letter ISO 3166-1
+                     alpha-2 code.
+        state        the state, province, or a similar principal country
+                     subdivision.
+        county       a secondary country subdivision.
+        locality     the locality of the sampling.
+        collector    the person who collect the sample.
+        z            in flying or oceanic specimens, the distance to
+                     groud (depth as negative) when the sampling was
+                     made.
+        latlon       the decimal latitude and longitude of the record,
+                     separated by one or more spaces.
+        elevation    elevation over sea level, in meters.
+        uncertainty  georeference uncertainty in meters.
+        geosource    source of the georeference.
+        validation   validation of the georeference.
+        reference    a bibliographic reference
+        dataset      source of the specimen record information
+        determiner   the person who identified the specimen
+        organism     the organism ID
+        stage        the growth stage of the organism
+        sex          sex of the organism
+
+If value is set to ‘-’ then it will remove any value from the given
+key. If the value starts with a ‘+’ it will be append the value (in
+the case that append is valid).
+`
+
+func setCmd(args []string) bool {
+	if recLs == nil {
+		fmt.Printf("error: a record should be set\n")
+		return false
+	}
+	if len(args) < 2 {
+		fmt.Printf("error: expecing <key> <value> parameters\n")
+		return false
+	}
+	rec := recLs[curRec]
+	key := strings.ToLower(args[0])
+	value := strings.Join(args[1:], " ")
+	if strings.HasPrefix(value, "+") {
+		value = rec.Value(key) + "\n" + value[1:]
+	}
+	if value == "-" {
+		value = ""
+	}
+
+	switch key {
+	case "date":
+		ev := rec.CollEvent()
+		ev.Date = time.Time{}
+		if value != "" {
+			t, err := time.Parse(time.RFC3339, value)
+			if err != nil {
+				fmt.Printf("error: invalid time value: %v\n", err)
+				return false
+			}
+			ev.Date = t
+		}
+		rec.SetCollEvent(ev)
+	case "country":
+		ev := rec.CollEvent()
+		ev.Admin.Country = ""
+		if value != "" {
+			value = strings.ToUpper(value)
+			if !geography.IsValidCode(value) {
+				fmt.Printf("error: invalid country code\n")
+				return false
+			}
+			ev.Admin.Country = value
+		}
+		rec.SetCollEvent(ev)
+	case "state":
+		ev := rec.CollEvent()
+		ev.Admin.State = value
+		rec.SetCollEvent(ev)
+	case "county":
+		ev := rec.CollEvent()
+		ev.Admin.County = value
+		rec.SetCollEvent(ev)
+	case "locality":
+		ev := rec.CollEvent()
+		ev.Locality = value
+		rec.SetCollEvent(ev)
+	case "collector":
+		ev := rec.CollEvent()
+		ev.Collector = value
+		rec.SetCollEvent(ev)
+	case "z":
+		ev := rec.CollEvent()
+		ev.Z = 0
+		if value != "" {
+			z, err := strconv.Atoi(value)
+			if err != nil {
+				fmt.Printf("error: invalid z value: %v\n", err)
+				return false
+			}
+			ev.Z = z
+		}
+		rec.SetCollEvent(ev)
+	case "latlon":
+		geo := rec.GeoRef()
+		if value == "" {
+			geo = geography.NewPosition()
+			rec.SetGeoRef(geo)
+			break
+		}
+		v := strings.Fields(value)
+		if len(v) != 2 {
+			fmt.Printf("error: latlon value should be a pair o values\n")
+			return false
+		}
+		lat, err := strconv.ParseFloat(v[0], 64)
+		if err != nil {
+			fmt.Printf("error: invalid latitude value: %v\n", err)
+			return false
+		}
+		lon, err := strconv.ParseFloat(v[1], 64)
+		if err != nil {
+			fmt.Printf("error: invalid longitude value: %v\n", err)
+			return false
+		}
+		if !geography.IsValidCoord(lat, lon) {
+			fmt.Printf("error: invalid latitude, longitude values\n")
+			return false
+		}
+		geo.Lat = lat
+		geo.Lon = lon
+		rec.SetGeoRef(geo)
+	case "elevation":
+		geo := rec.GeoRef()
+		geo.Elevation = 0
+		if value != "" {
+			e, err := strconv.Atoi(value)
+			if err != nil {
+				fmt.Printf("error: invalid elevation: %v\n", err)
+				return false
+			}
+			if e < 0 {
+				fmt.Printf("error: invalid elevation: negative value\n")
+				return false
+			}
+			geo.Elevation = uint(e)
+		}
+		rec.SetGeoRef(geo)
+	case "uncertainty":
+		geo := rec.GeoRef()
+		geo.Uncertainty = 0
+		if value != "" {
+			u, err := strconv.Atoi(value)
+			if err != nil {
+				fmt.Printf("error: invalid uncertainty: %v\n", err)
+				return false
+			}
+			if u < 0 {
+				fmt.Printf("error: invalid uncertainty: negative value\n")
+				return false
+			}
+			geo.Uncertainty = uint(u)
+		}
+		rec.SetGeoRef(geo)
+	case "geosource":
+		geo := rec.GeoRef()
+		geo.Source = value
+		rec.SetGeoRef(geo)
+	case "validation":
+		geo := rec.GeoRef()
+		geo.Validation = value
+		rec.SetGeoRef(geo)
+	default:
+		if err := rec.Set(key, value); err != nil {
+			fmt.Printf("error: %v\n", err)
+			return false
+		}
+	}
+	return false
+}
+
+var svHelp = `
+Usage:
+    sv <key> <value>
+Perform 'set' and the 'view' command.
+`
+
+func svCmd(args []string) bool {
+	if recLs == nil {
+		fmt.Printf("error: a record should be set\n")
+		return false
+	}
+	if len(args) < 2 {
+		fmt.Printf("error: expecing <key> <value> parameters\n")
+		return false
+	}
+	setCmd(args)
+	viewCmd(nil)
+	return false
+}
+
 var taxonHelp = `
 Usage:
     t <taxon>
@@ -541,7 +772,7 @@ func viewCmd(args []string) bool {
 		fmt.Printf("elevation:\t%d\n", geo.Elevation)
 		fmt.Printf("uncertainty:\t%d\n", geo.Uncertainty)
 		fmt.Printf("geosource:\t%s\n", geo.Source)
-		fmt.Printf("validation:\t%sn", geo.Validation)
+		fmt.Printf("validation:\t%s\n", geo.Validation)
 	}
 	for _, k := range rec.Keys() {
 		v := rec.Value(k)
