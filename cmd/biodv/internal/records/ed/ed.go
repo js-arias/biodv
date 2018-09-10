@@ -39,6 +39,10 @@ The commands understood by rec.ed are:
     desc [<taxon>]
       List descendants of a taxon.
 
+    e
+    exit
+      Shorthand for 'write' and 'quit'.
+
     h [<command>]
     help [<command>]
       Print command help.
@@ -139,6 +143,7 @@ func prompt() string {
 func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
+	i.Add(&cmdapp.Cmd{"e", "exit", "shorthand for 'write' and 'quit'", exitHelp, exitCmd})
 	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd(i)})
 	i.Add(&cmdapp.Cmd{"", "nv", "shorthand for 'next' and 'view'", nvHelp, nvCmd(i)})
@@ -233,6 +238,18 @@ func descCmd(args []string) bool {
 		fmt.Printf("%s\n", c.Name())
 	}
 	return false
+}
+
+var exitHelp = `
+Usage:
+    e
+    exit
+Perform 'write' and then 'quit' commands.
+`
+
+func exitCmd(args []string) bool {
+	writeCmd(args)
+	return true
 }
 
 var listHelp = `
