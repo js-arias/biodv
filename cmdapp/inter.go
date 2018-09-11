@@ -30,7 +30,7 @@ type Inter struct {
 
 	// R is the reader used
 	// for the command input.
-	r io.Reader
+	r *bufio.Reader
 
 	mu   sync.Mutex
 	cmds map[string]*Cmd
@@ -46,7 +46,7 @@ func NewInter(r io.Reader, prompt func() string) *Inter {
 		prompt = func() string { return "$" }
 	}
 	i := &Inter{
-		r:      r,
+		r:      bufio.NewReader(r),
 		prompt: prompt,
 		cmds:   make(map[string]*Cmd),
 	}
@@ -140,10 +140,9 @@ type Cmd struct {
 // is '#'
 // (a handy way to introduce comments).
 func (i *Inter) Loop() {
-	r := bufio.NewReader(i.r)
 	for {
 		fmt.Printf("%s ", i.prompt())
-		line, err := r.ReadString('\n')
+		line, err := i.r.ReadString('\n')
 		if err == io.EOF {
 			return
 		}
@@ -173,6 +172,35 @@ func (i *Inter) Loop() {
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 		}
+	}
+}
+
+// GetAnswer gets an answer
+// that should be responded by the user,
+// outside of the command loop.
+//
+// If empty is true,
+// an empty line will be a valid answer.
+func (i *Inter) GetAnswer(question string, empty bool) []string {
+	for {
+		fmt.Printf("%s: ", question)
+		ln, err := i.r.ReadString('\n')
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return nil
+		}
+
+		ans := strings.Fields(ln)
+		if empty {
+			return ans
+		}
+		if len(ans) == 0 {
+			continue
+		}
+		return ans
 	}
 }
 
