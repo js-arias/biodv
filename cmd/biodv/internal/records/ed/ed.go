@@ -51,6 +51,10 @@ The commands understood by rec.ed are:
     exit
       Shorthand for 'write' and 'quit'.
 
+    g [<service>]
+    georef [<service>]
+      Georeference an specimen record.
+
     h [<command>]
     help [<command>]
       Print command help.
@@ -117,6 +121,7 @@ func init() {
 
 var txm biodv.Taxonomy
 var tax biodv.Taxon
+var gzt biodv.Gazetteer
 var recs *records.DB
 var recLs []*records.Record
 var curRec int
@@ -157,6 +162,7 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"del", "delete", "delete an specimen record", deleteHelp, deleteCmd})
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
 	i.Add(&cmdapp.Cmd{"e", "exit", "shorthand for 'write' and 'quit'", exitHelp, exitCmd})
+	i.Add(&cmdapp.Cmd{"g", "georef", "georeference an specimen record", georefHelp, georefCmd(i)})
 	i.Add(&cmdapp.Cmd{"l", "list", "list specimen records", listHelp, listCmd})
 	i.Add(&cmdapp.Cmd{"m", "move", "move a specimen record to a taxon", moveHelp, moveCmd})
 	i.Add(&cmdapp.Cmd{"n", "next", "move to next specimen record", nextHelp, nextCmd})
@@ -326,6 +332,113 @@ func descCmd(args []string) (bool, error) {
 		fmt.Printf("%s\n", c.Name())
 	}
 	return false, nil
+}
+
+var georefHelp = `
+Usage:
+    g [<service>]
+    georef [<service>]
+Uses a gazetteer service to get the geographic geolocation of an
+specimen record with locality data. A service should be defined
+the first time the command is used, for next executions, the last
+defined service will be used. If the specimen is already
+georeferenced, the results will be used as a validator.
+`
+
+func georefCmd(i *cmdapp.Inter) func(args []string) (bool, error) {
+	return func(args []string) (bool, error) {
+		if recLs == nil {
+			return false, errors.New("a record should be set")
+		}
+		srv := strings.Join(args, ":")
+		if srv != "" {
+			serv, param := biodv.ParseDriverString(srv)
+			var err error
+			gzt, err = biodv.OpenGz(serv, param)
+			if err != nil {
+				return false, err
+			}
+		}
+		if gzt == nil {
+			return false, errors.New("undefined service")
+		}
+
+		rec := recLs[curRec]
+		ev := rec.CollEvent()
+		if !geography.IsValidCode(ev.CountryCode()) {
+			return false, errors.New("invalid country code")
+		}
+		if ev.Locality == "" {
+			ev.Locality = ev.County()
+		}
+		if ev.Locality == "" {
+			ev.Locality = ev.State()
+		}
+		if ev.Locality == "" {
+			return false, errors.New("no locality")
+		}
+
+		var pts []geography.Position
+		sg := gzt.Locate(ev.Admin, ev.Locality)
+		for sg.Scan() {
+			p := sg.Position()
+			pts = append(pts, p)
+		}
+		if err := sg.Err(); err != nil {
+			return false, err
+		}
+		if len(pts) == 0 {
+			return false, nil
+		}
+
+		geo := rec.GeoRef()
+		if geo.IsValid() {
+			fmt.Printf("Distance from current georeference:\n")
+			min := uint(geography.EarthRadius)
+			for _, p := range pts {
+				d := geo.MaxDist(p)
+				if d < min {
+					min = d
+				}
+				fmt.Printf("\t%.3f km\n", float64(d)/1000)
+			}
+			a := i.GetAnswer("set as validated? (y/n)", false)
+			if len(a) != 1 {
+				return false, nil
+			}
+			if v := strings.ToLower(a[0]); v != "y" && v != "yes" {
+				return false, nil
+			}
+			if geo.Validation != "" {
+				geo.Validation += " " + pts[0].Source
+			} else {
+				geo.Validation = pts[0].Source
+			}
+			geo.Uncertainty = min
+			rec.SetGeoRef(geo)
+			return false, nil
+		}
+		fmt.Printf("Found locations (lat lon uncertainty):\n")
+		for j, p := range pts {
+			fmt.Printf("%d\t%f %f %.3f km\n", j, p.Lat, p.Lon, float64(p.Uncertainty)/1000)
+		}
+		a := i.GetAnswer(fmt.Sprintf("select point (%d to reject all)", len(pts)), false)
+		if len(a) != 1 {
+			return false, nil
+		}
+		v, err := strconv.Atoi(a[0])
+		if err != nil {
+			return false, errors.Wrap(err, "invalid element number")
+		}
+		if v < 0 {
+			return false, errors.New("invalid element number")
+		}
+		if v >= len(pts) {
+			return false, nil
+		}
+		rec.SetGeoRef(pts[v])
+		return false, nil
+	}
 }
 
 var exitHelp = `
@@ -591,7 +704,7 @@ func recordCmd(args []string) (bool, error) {
 		if rec == nil {
 			return false, nil
 		}
-		if rec.Taxon() != tax.ID() {
+		if tax == nil || rec.Taxon() != tax.ID() {
 			nt, _ := txm.TaxID(rec.Taxon())
 			if nt == nil {
 				return false, nil
