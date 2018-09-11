@@ -107,11 +107,13 @@ func Open(param string) (biodv.Gazetteer, error) {
 	if reqChan == nil {
 		initReqs()
 	}
-	return gzService{}, nil
+	return gzService{param}, nil
 }
 
 // GzService is a biodv.Gazetteer.
-type gzService struct{}
+type gzService struct {
+	param string
+}
 
 func (gz gzService) Locate(adm geography.Admin, locality string) *biodv.GeoScan {
 	sc := biodv.NewGeoScan(100)
@@ -202,7 +204,7 @@ func (gz gzService) pointList(sc *biodv.GeoScan, param url.Values) {
 			}
 
 			for _, f := range resp.Features {
-				if f.Properties.Precision != "High" {
+				if gz.param != "" && f.Properties.Precision != gz.param {
 					continue
 				}
 				p := geography.Position{
