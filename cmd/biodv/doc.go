@@ -14,6 +14,7 @@ The commands are:
     rec.assign       change taxon assignment of an specimen record
     rec.db.add       add records from an external DB
     rec.del          eliminate an specimen record from the database
+    rec.ed           edit records interactively
     rec.georef       set the georeference of an specimen record
     rec.gz.georef    georeference specimen records
     rec.info         print record information
@@ -263,6 +264,97 @@ Options are:
 
     <name>
       The specimen record to be deleted.
+
+Edit records interactively
+
+Usage:
+
+	biodv rec.ed
+
+Command rec.ed implements a simple interactive specimen record editor.
+
+The commands understood by rec.ed are:
+
+    a [<catalog>]
+    add [<catalog>]
+      Add an specimen record.
+
+    c [<taxon>]
+    count [<taxon>]
+      Print the number of specimen records of a given taxon.
+
+    del [<record>]
+    delete [<record>]
+      Delete an specimen record.
+
+    d [<taxon>]
+    desc [<taxon>]
+      List descendants of a taxon.
+
+    e
+    exit
+      Shorthand for 'write' and 'quit'.
+
+    g [<service>]
+    georef [<service>]
+      Georeference an specimen record.
+
+    h [<command>]
+    help [<command>]
+      Print command help.
+
+    l [<taxon>]
+    list [<taxon>]
+      List the IDs of the specimen records of a given taxon.
+
+    m <taxon>
+    move <taxon>
+      Move a specimen record to a taxon.
+
+    n
+    next
+      Move to the next specimen record.
+
+    nv
+      Shorthand for 'next' and 'view'.
+
+    p
+    prev
+      Move to the previous specimen record.
+
+    pv
+      Shorthand for 'prev' and 'view'.
+
+    q
+    quit
+      Quit the program, without making any change.
+
+    rk [<taxon>]
+    rank [<taxon>]
+      Print the rank of a taxon.
+
+    r [<record>]
+    record [<record>]
+      Move to the indicated specimen record.
+
+    s <key> <value>
+    set <key> <value>
+      Set a value of an specimen record.
+
+    sv <key> <value>
+      Shorthand for 'set' and 'view'.
+
+    t <taxon>
+    taxon <taxon>
+      Move to the indicated taxon.
+
+    v [<record>]
+    view [<record>]
+      Show specimen record data.
+
+    w
+    write
+      Write the database on the hard disk.
 
 Set the georeference of an specimen record
 
