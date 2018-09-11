@@ -31,6 +31,10 @@ Command rec.ed implements a simple interactive specimen record editor.
 
 The commands understood by rec.ed are:
 
+    a [<catalog>]
+    add [<catalog>]
+      Add an specimen record.
+
     c [<taxon>]
     count [<taxon>]
       Print the number of specimen records of a given taxon.
@@ -148,6 +152,7 @@ func prompt() string {
 }
 
 func addCommands(i *cmdapp.Inter) {
+	i.Add(&cmdapp.Cmd{"a", "add", "add an specimen records", addHelp, addCmd})
 	i.Add(&cmdapp.Cmd{"c", "count", "number of specimen records", countHelp, countCmd})
 	i.Add(&cmdapp.Cmd{"del", "delete", "delete an specimen record", deleteHelp, deleteCmd})
 	i.Add(&cmdapp.Cmd{"d", "desc", "list descendant taxons", descHelp, descCmd})
@@ -166,6 +171,39 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"t", "taxon", "move to taxon", taxonHelp, taxonCmd})
 	i.Add(&cmdapp.Cmd{"v", "view", "print specimen record data", viewHelp, viewCmd})
 	i.Add(&cmdapp.Cmd{"w", "write", "write the database on the hard disk", writeHelp, writeCmd})
+}
+
+var addHelp = `
+Usage:
+    a [<catalog>]
+    add [<catalog>]
+Add a new record for the current taxon, and move the current position
+to the new record. If no catalog number is given, an interal ID will
+be created for the new record, and the basis of the record will be
+set as unknown. If a catalog is given, the record will be set as an
+preserved specimen.
+`
+
+func addCmd(args []string) bool {
+	if tax == nil {
+		fmt.Printf("error: specimen records can not be added on the root\n")
+		return false
+	}
+	basis := biodv.UnknownBasis
+	id := strings.Join(args, " ")
+	if id != "" {
+		if recs.Record(id) != nil {
+			fmt.Printf("error: catalog number '%s' already in database\n", id)
+			return false
+		}
+		basis = biodv.Preserved
+	}
+	rec, err := recs.Add(tax.ID(), "", id, basis, 360, 360)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return false
+	}
+	return recordCmd([]string{rec.ID()})
 }
 
 var countHelp = `
