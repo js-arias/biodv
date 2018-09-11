@@ -16,6 +16,8 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/pkg/errors"
 )
 
 // Inter implements an interactive command line,
@@ -124,7 +126,7 @@ type Cmd struct {
 	// Run runs the command.
 	// It returns true to indicate the end
 	// of the command loop.
-	Run func(args []string) bool
+	Run func(args []string) (bool, error)
 }
 
 // Loop is the command loop.
@@ -164,8 +166,12 @@ func (i *Inter) Loop() {
 			fmt.Printf("error: unknown command '%s'\n", cmd)
 			continue
 		}
-		if c.Run(args) {
+		end, err := c.Run(args)
+		if end {
 			return
+		}
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
 		}
 	}
 }
@@ -194,25 +200,23 @@ func (i *Inter) printCmds() {
 	fmt.Printf("\nUse 'h <command>' for more information about a command\n")
 }
 
-func helpCmdRun(i *Inter) func(args []string) bool {
-	return func(args []string) bool {
+func helpCmdRun(i *Inter) func(args []string) (bool, error) {
+	return func(args []string) (bool, error) {
 		if len(args) == 0 {
 			i.printCmds()
-			return false
+			return false, nil
 		}
 
 		if len(args) != 1 {
-			fmt.Printf("error: to many arguments\n")
-			return false
+			return false, errors.New("to many arguments")
 		}
 
 		c := i.getCmd(args[0])
 		if c == nil {
-			fmt.Printf("error: unknown command '%s'\n", args[0])
-			return false
+			return false, errors.Errorf("unknown command '%s'", args[0])
 		}
 
 		fmt.Printf("%s\n", strings.TrimSpace(c.Long))
-		return false
+		return false, nil
 	}
 }

@@ -163,7 +163,7 @@ func addCommands(i *cmdapp.Inter) {
 	i.Add(&cmdapp.Cmd{"", "nv", "shorthand for 'next' and 'view'", nvHelp, nvCmd})
 	i.Add(&cmdapp.Cmd{"p", "prev", "move to previous specimen record", prevHelp, prevCmd})
 	i.Add(&cmdapp.Cmd{"", "pv", "shorthand for 'prev' and 'view'", pvHelp, pvCmd})
-	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) bool { return true }})
+	i.Add(&cmdapp.Cmd{"q", "quit", "quit the program", quitHelp, func([]string) (bool, error) { return true, nil }})
 	i.Add(&cmdapp.Cmd{"rk", "rank", "print taxon rank", rankHelp, rankCmd})
 	i.Add(&cmdapp.Cmd{"r", "record", "move to specimen record", recordHelp, recordCmd})
 	i.Add(&cmdapp.Cmd{"s", "set", "set a value of an specimen record", setHelp, setCmd})
@@ -184,24 +184,21 @@ set as unknown. If a catalog is given, the record will be set as an
 preserved specimen.
 `
 
-func addCmd(args []string) bool {
+func addCmd(args []string) (bool, error) {
 	if tax == nil {
-		fmt.Printf("error: specimen records can not be added on the root\n")
-		return false
+		return false, errors.New("specimen records can not be added on the root")
 	}
 	basis := biodv.UnknownBasis
 	id := strings.Join(args, " ")
 	if id != "" {
 		if recs.Record(id) != nil {
-			fmt.Printf("error: catalog number '%s' already in database\n", id)
-			return false
+			return false, errors.Errorf("catalog number '%s' already in database", id)
 		}
 		basis = biodv.Preserved
 	}
 	rec, err := recs.Add(tax.ID(), "", id, basis, 360, 360)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
-		return false
+		return false, err
 	}
 	return recordCmd([]string{rec.ID()})
 }
@@ -215,35 +212,35 @@ taxon (not including descendants). If no taxon is given, it will use
 the current taxon.
 `
 
-func countCmd(args []string) bool {
+func countCmd(args []string) (bool, error) {
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		nm = tax.ID()
 	case "/":
-		return false
+		return false, nil
 	case "..":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		nm = tax.Parent()
 		if nm == "" {
-			return false
+			return false, nil
 		}
 	default:
 		nt, _ := txm.TaxID(nm)
 		if nt == nil {
-			return false
+			return false, nil
 		}
 		nm = nt.ID()
 	}
 
 	ls := recs.RecList(nm)
 	fmt.Printf("%d\n", len(ls))
-	return false
+	return false, nil
 }
 
 var deleteHelp = `
@@ -254,24 +251,24 @@ Removes the specified record from the database. If no record is given
 it will remove the current record.
 `
 
-func deleteCmd(args []string) bool {
+func deleteCmd(args []string) (bool, error) {
 	id := strings.Join(args, " ")
 	if recLs == nil {
 		if id == "" {
-			return false
+			return false, nil
 		}
 		if recs.Record(id) == nil {
-			return false
+			return false, nil
 		}
 		recs.Delete(id)
-		return false
+		return false, nil
 	}
 
 	if id != "" {
 		rec := recs.Record(id)
 		if rec.Taxon() != tax.ID() {
 			recs.Delete(id)
-			return false
+			return false, nil
 		}
 		curID := recLs[curRec].ID()
 		recs.Delete(id)
@@ -284,10 +281,10 @@ func deleteCmd(args []string) bool {
 	if len(ls) == 0 || curRec >= len(ls) {
 		recLs = nil
 		curRec = 0
-		return false
+		return false, nil
 	}
 	recLs = ls
-	return false
+	return false, nil
 }
 
 var descHelp = `
@@ -299,7 +296,7 @@ If a taxon is given, it will show the descendants of the indicated
 taxon.
 `
 
-func descCmd(args []string) bool {
+func descCmd(args []string) (bool, error) {
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
@@ -310,13 +307,13 @@ func descCmd(args []string) bool {
 		nm = ""
 	case "..":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		nm = tax.Parent()
 	default:
 		nt, _ := txm.TaxID(nm)
 		if nt == nil {
-			return false
+			return false, nil
 		}
 		nm = nt.ID()
 	}
@@ -328,7 +325,7 @@ func descCmd(args []string) bool {
 	for _, c := range ls {
 		fmt.Printf("%s\n", c.Name())
 	}
-	return false
+	return false, nil
 }
 
 var exitHelp = `
@@ -338,9 +335,11 @@ Usage:
 Perform 'write' and then 'quit' commands.
 `
 
-func exitCmd(args []string) bool {
-	writeCmd(args)
-	return true
+func exitCmd(args []string) (bool, error) {
+	if _, err := writeCmd(args); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 var listHelp = `
@@ -351,30 +350,30 @@ List the IDs records of the records of the given taxon. If no taxon
 is given, it will list the records of the current taxon.
 `
 
-func listCmd(args []string) bool {
+func listCmd(args []string) (bool, error) {
 	var ls []*records.Record
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		ls = recLs
 		if len(recLs) == 0 {
 			ls = recs.RecList(tax.ID())
 		}
 		if len(ls) == 0 {
-			return false
+			return false, nil
 		}
 	case "/":
-		return false
+		return false, nil
 	case "..":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		p := tax.Parent()
 		if p == "" {
-			return false
+			return false, nil
 		}
 		ls = recs.RecList(p)
 	default:
@@ -383,7 +382,7 @@ func listCmd(args []string) bool {
 	for _, r := range ls {
 		fmt.Printf("%s\n", r.ID())
 	}
-	return false
+	return false, nil
 }
 
 var moveHelp = `
@@ -396,14 +395,12 @@ current record will be set to the current specimen record,
 in the new taxon assignation.
 `
 
-func moveCmd(args []string) bool {
+func moveCmd(args []string) (bool, error) {
 	if recLs == nil {
-		fmt.Printf("error: a record should be set\n")
-		return false
+		return false, errors.New("a record should be set")
 	}
 	if len(args) < 1 {
-		fmt.Printf("error: expecing a taxon\n")
-		return false
+		return false, errors.New("expecing a taxon")
 	}
 
 	var nt biodv.Taxon
@@ -411,28 +408,24 @@ func moveCmd(args []string) bool {
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
-		return false
+		return false, nil
 	case "/":
-		fmt.Printf("error: specimen records can not be moved to the root\n")
-		return false
+		return false, errors.New("specimen records can not be moved to the root")
 	case "..":
 		if tax == nil {
-			fmt.Printf("error: specimen records can not be moved to the root\n")
-			return false
+			return false, errors.New("specimen records can not be moved to the root")
 		}
 		nt, _ = txm.TaxID(tax.Parent())
 	default:
 		nt, _ = txm.TaxID(nm)
 	}
 	if nt == nil {
-		fmt.Printf("error: taxon '%s' not in database\n", nm)
-		return false
+		return false, errors.Errorf("taxon '%s' not in database", nm)
 	}
 
 	id := recLs[curRec].ID()
 	if err := recs.Move(id, nt.ID()); err != nil {
-		fmt.Printf("error: %v\n", err)
-		return false
+		return false, err
 	}
 	return recordCmd([]string{id})
 }
@@ -444,14 +437,14 @@ Usage:
 Move the record to the next record of the list.
 `
 
-func nextCmd(args []string) bool {
+func nextCmd(args []string) (bool, error) {
 	if tax == nil {
-		return false
+		return false, nil
 	}
 	if len(recLs) == 0 {
 		ls := recs.RecList(tax.ID())
 		if len(ls) == 0 {
-			return false
+			return false, nil
 		}
 		recLs = ls
 		curRec = 0
@@ -462,7 +455,7 @@ func nextCmd(args []string) bool {
 			curRec = 0
 		}
 	}
-	return false
+	return false, nil
 }
 
 var nvHelp = `
@@ -471,7 +464,7 @@ Usage:
 Perform 'next' and then 'view' commands.
 `
 
-func nvCmd(args []string) bool {
+func nvCmd(args []string) (bool, error) {
 	nextCmd(nil)
 	return viewCmd(nil)
 }
@@ -483,14 +476,14 @@ Usage:
 Move the record to the previous record of the list.
 `
 
-func prevCmd(args []string) bool {
+func prevCmd(args []string) (bool, error) {
 	if tax == nil {
-		return false
+		return false, nil
 	}
 	if len(recLs) == 0 {
 		ls := recs.RecList(tax.ID())
 		if len(ls) == 0 {
-			return false
+			return false, nil
 		}
 		recLs = ls
 		curRec = len(ls) - 1
@@ -501,7 +494,7 @@ func prevCmd(args []string) bool {
 			curRec = 0
 		}
 	}
-	return false
+	return false, nil
 }
 
 var pvHelp = `
@@ -510,7 +503,7 @@ Usage:
 Perform 'prev' and the 'view' command.
 `
 
-func pvCmd(args []string) bool {
+func pvCmd(args []string) (bool, error) {
 	prevCmd(nil)
 	return viewCmd(nil)
 }
@@ -531,39 +524,39 @@ rank of the current taxon. If the taxon is unranked, the rank of
 the most inmediate ranked parent will be printed in parenthesis.
 `
 
-func rankCmd(args []string) bool {
+func rankCmd(args []string) (bool, error) {
 	tx := tax
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 	case "/":
-		return false
+		return false, nil
 	case "..":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		tx, _ = txm.TaxID(tax.Parent())
 	default:
 		tx, _ = txm.TaxID(nm)
 	}
 	if tx == nil {
-		return false
+		return false, nil
 	}
 	r := tx.Rank()
 	if r == biodv.Unranked {
 		r = getRank(tx)
 		if r == biodv.Unranked {
 			fmt.Printf("%s\n", r)
-			return false
+			return false, nil
 		}
 		fmt.Printf("%s (%s)\n", biodv.Unranked, r)
-		return false
+		return false, nil
 	}
 	fmt.Printf("%s\n", r)
-	return false
+	return false, nil
 }
 
 func getRank(tx biodv.Taxon) biodv.Rank {
@@ -585,23 +578,23 @@ is given, it will use the first record of the current
 taxon.
 `
 
-func recordCmd(args []string) bool {
+func recordCmd(args []string) (bool, error) {
 	id := strings.Join(args, " ")
 	if id == "" {
 		recLs = recs.RecList(tax.ID())
 		curRec = 0
 		if len(recLs) == 0 {
-			return false
+			return false, nil
 		}
 	} else {
 		rec := recs.Record(id)
 		if rec == nil {
-			return false
+			return false, nil
 		}
 		if rec.Taxon() != tax.ID() {
 			nt, _ := txm.TaxID(rec.Taxon())
 			if nt == nil {
-				return false
+				return false, nil
 			}
 			tax = nt
 		}
@@ -613,7 +606,7 @@ func recordCmd(args []string) bool {
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
 var setHelp = `
@@ -666,14 +659,12 @@ key. If the value starts with a ‘+’ it will be append the value (in
 the case that append is valid).
 `
 
-func setCmd(args []string) bool {
+func setCmd(args []string) (bool, error) {
 	if recLs == nil {
-		fmt.Printf("error: a record should be set\n")
-		return false
+		return false, errors.New("a record should be set")
 	}
 	if len(args) < 2 {
-		fmt.Printf("error: expecing <key> <value> parameters\n")
-		return false
+		return false, errors.New("expecing <key> <value> parameters")
 	}
 	rec := recLs[curRec]
 	key := strings.ToLower(args[0])
@@ -692,8 +683,7 @@ func setCmd(args []string) bool {
 		if value != "" {
 			t, err := time.Parse(time.RFC3339, value)
 			if err != nil {
-				fmt.Printf("error: invalid time value: %v\n", err)
-				return false
+				return false, errors.Wrap(err, "invalid time value")
 			}
 			ev.Date = t
 		}
@@ -704,8 +694,7 @@ func setCmd(args []string) bool {
 		if value != "" {
 			value = strings.ToUpper(value)
 			if !geography.IsValidCode(value) {
-				fmt.Printf("error: invalid country code\n")
-				return false
+				return false, errors.New("invalid country code")
 			}
 			ev.Admin.Country = value
 		}
@@ -732,8 +721,7 @@ func setCmd(args []string) bool {
 		if value != "" {
 			z, err := strconv.Atoi(value)
 			if err != nil {
-				fmt.Printf("error: invalid z value: %v\n", err)
-				return false
+				return false, errors.Wrap(err, "invalid z value")
 			}
 			ev.Z = z
 		}
@@ -747,22 +735,18 @@ func setCmd(args []string) bool {
 		}
 		v := strings.Fields(value)
 		if len(v) != 2 {
-			fmt.Printf("error: latlon value should be a pair o values\n")
-			return false
+			return false, errors.New("latlon value should be a pair o values")
 		}
 		lat, err := strconv.ParseFloat(v[0], 64)
 		if err != nil {
-			fmt.Printf("error: invalid latitude value: %v\n", err)
-			return false
+			return false, errors.Wrap(err, "invalid latitude value")
 		}
 		lon, err := strconv.ParseFloat(v[1], 64)
 		if err != nil {
-			fmt.Printf("error: invalid longitude value: %v\n", err)
-			return false
+			return false, errors.Wrap(err, "invalid longitude value")
 		}
 		if !geography.IsValidCoord(lat, lon) {
-			fmt.Printf("error: invalid latitude, longitude values\n")
-			return false
+			return false, errors.New("invalid latitude, longitude values")
 		}
 		geo.Lat = lat
 		geo.Lon = lon
@@ -773,12 +757,10 @@ func setCmd(args []string) bool {
 		if value != "" {
 			e, err := strconv.Atoi(value)
 			if err != nil {
-				fmt.Printf("error: invalid elevation: %v\n", err)
-				return false
+				return false, errors.Wrap(err, "invalid elevation")
 			}
 			if e < 0 {
-				fmt.Printf("error: invalid elevation: negative value\n")
-				return false
+				return false, errors.New("invalid elevation: negative value")
 			}
 			geo.Elevation = uint(e)
 		}
@@ -789,12 +771,10 @@ func setCmd(args []string) bool {
 		if value != "" {
 			u, err := strconv.Atoi(value)
 			if err != nil {
-				fmt.Printf("error: invalid uncertainty: %v\n", err)
-				return false
+				return false, errors.Wrap(err, "invalid uncertainty")
 			}
 			if u < 0 {
-				fmt.Printf("error: invalid uncertainty: negative value\n")
-				return false
+				return false, errors.New("invalid uncertainty: negative value")
 			}
 			geo.Uncertainty = uint(u)
 		}
@@ -809,11 +789,10 @@ func setCmd(args []string) bool {
 		rec.SetGeoRef(geo)
 	default:
 		if err := rec.Set(key, value); err != nil {
-			fmt.Printf("error: %v\n", err)
-			return false
+			return false, err
 		}
 	}
-	return false
+	return false, nil
 }
 
 var svHelp = `
@@ -822,18 +801,11 @@ Usage:
 Perform 'set' and the 'view' command.
 `
 
-func svCmd(args []string) bool {
-	if recLs == nil {
-		fmt.Printf("error: a record should be set\n")
-		return false
+func svCmd(args []string) (bool, error) {
+	if _, err := setCmd(args); err != nil {
+		return false, err
 	}
-	if len(args) < 2 {
-		fmt.Printf("error: expecing <key> <value> parameters\n")
-		return false
-	}
-	setCmd(args)
-	viewCmd(nil)
-	return false
+	return viewCmd(nil)
 }
 
 var taxonHelp = `
@@ -845,28 +817,28 @@ parent use '..' to move to a parent, or use '/' to move to the
 root of the taxonomy.
 `
 
-func taxonCmd(args []string) bool {
+func taxonCmd(args []string) (bool, error) {
 	nm := strings.Join(args, " ")
 	switch nm {
 	case "", ".":
-		return false
+		return false, nil
 	case "/":
 		tax = nil
 	case "..":
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		tax, _ = txm.TaxID(tax.Parent())
 	default:
 		nt, _ := txm.TaxID(nm)
 		if nt == nil {
-			return false
+			return false, nil
 		}
 		tax = nt
 	}
 	recLs = nil
 	curRec = 0
-	return false
+	return false, nil
 }
 
 var viewHelp = `
@@ -877,21 +849,21 @@ Shows the information stored on the indicated record. If no record
 is given, it will show the current record.
 `
 
-func viewCmd(args []string) bool {
+func viewCmd(args []string) (bool, error) {
 	var rec *records.Record
 	id := strings.Join(args, " ")
 	if id == "" {
 		if tax == nil {
-			return false
+			return false, nil
 		}
 		if len(recLs) == 0 {
-			return false
+			return false, nil
 		}
 		rec = recLs[curRec]
 	} else {
 		rec = recs.Record(id)
 		if rec == nil {
-			return false
+			return false, nil
 		}
 	}
 
@@ -924,7 +896,7 @@ func viewCmd(args []string) bool {
 		v := rec.Value(k)
 		fmt.Printf("%s:\t%s\n", k, v)
 	}
-	return false
+	return false, nil
 }
 
 var writeHelp = `
@@ -935,9 +907,9 @@ Write all changes made to the database since the start of the
 edition season, or the last writing.
 `
 
-func writeCmd(args []string) bool {
+func writeCmd(args []string) (bool, error) {
 	if err := recs.Commit(); err != nil {
-		fmt.Printf("error: %v\n", err)
+		return false, err
 	}
-	return false
+	return false, nil
 }
