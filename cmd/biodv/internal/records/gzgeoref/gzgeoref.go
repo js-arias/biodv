@@ -136,13 +136,18 @@ func procTaxon(txm biodv.Taxonomy, gz biodv.Gazetteer, recs *records.DB, tax bio
 		}
 
 		ev := r.CollEvent()
-		if ev.Locality == "" {
-			continue
-		}
 		if !geography.IsValidCode(ev.CountryCode()) {
 			continue
 		}
-
+		if ev.Locality == "" {
+			ev.Locality = ev.County()
+		}
+		if ev.Locality == "" {
+			ev.Locality = ev.State()
+		}
+		if ev.Locality == "" {
+			continue
+		}
 		sg := gz.Locate(ev.Admin, ev.Locality)
 		i := 0
 		var max uint
