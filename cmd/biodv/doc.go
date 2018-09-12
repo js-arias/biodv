@@ -120,7 +120,7 @@ Add specimen records
 
 Usage:
 
-	biodv rec.add [-g|--georef] [-l|--locatable] [<file>..,]
+	biodv rec.add [-g|--georef] [-l|--locatable] [<file>...]
 
 Command rec.add adds one or more records from the indicated files, or
 the standard input (if no file is defined) to the specimen records

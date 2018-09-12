@@ -25,7 +25,7 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: "rec.add [-g|--georef] [-l|--locatable] [<file>..,]",
+	UsageLine: "rec.add [-g|--georef] [-l|--locatable] [<file>...]",
 	Short:     "add specimen records",
 	Long: `
 Command rec.add adds one or more records from the indicated files, or
