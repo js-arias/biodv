@@ -9,6 +9,7 @@
 package mapcmd
 
 import (
+	"bufio"
 	"fmt"
 	"image"
 	"image/color"
@@ -16,6 +17,8 @@ import (
 	"image/png"
 	"os"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -25,18 +28,19 @@ import (
 
 var cmd = &cmdapp.Command{
 	UsageLine: `rec.map [--db <database>] [--id <value>] [-e|--exact]
-		[-h|--heath] [-m|--map <imagemap>] [-o|--out <filename>]
+		[-h|--heath] [-m|--map <imagemap>] [-o|--out <suffix>]
 		[-s|--size <number>] [<name>]`,
 	Short: "produce a map with georeferenced records",
 	Long: `
 Command rec.map produces a image map using a provided image map, and the
-georeferenced records of the indicated taxon.
+georeferenced records of the indicated taxon. If no taxon or --id is
+given, it will make maps based on the name sgiven in the standard input.
 
 The image map is defined with the -m or --map option, and should be on
 equirectangular projection, and covering the whole planet. If no map is
 given, then a white backgound image will be used.
 
-The output map is defined with -o or --out option. If no file is given,
+The output map is defined with -o or --out option. If no suffix is given,
 it will create a new file with the name of the taxon, and adding the
 suffix '-map.png'. The output map is with png format, and it will be
 cropped to adjust the data.
@@ -120,8 +124,8 @@ func register(c *cmdapp.Command) {
 	c.Flag.BoolVar(&heathOp, "h", false, "")
 	c.Flag.StringVar(&mapName, "map", "", "")
 	c.Flag.StringVar(&mapName, "m", "", "")
-	c.Flag.StringVar(&outName, "out", "", "")
-	c.Flag.StringVar(&outName, "o", "", "")
+	c.Flag.StringVar(&outName, "out", "map.png", "")
+	c.Flag.StringVar(&outName, "o", "map.png", "")
 	c.Flag.IntVar(&recSize, "size", 2, "")
 	c.Flag.IntVar(&recSize, "s", 2, "")
 }
@@ -136,11 +140,6 @@ func run(c *cmdapp.Command, args []string) error {
 	var param string
 	dbName, param = biodv.ParseDriverString(dbName)
 
-	nm := strings.Join(args, " ")
-	if id == "" && nm == "" {
-		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
-	}
-
 	txm, err := biodv.OpenTax(dbName, param)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
@@ -151,27 +150,60 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	tax, err := getTaxon(txm, nm)
-	if err != nil {
+	if outName == "" {
+		outName = "map.png"
+	}
+	if !strings.HasPrefix(outName, "-") {
+		outName = "-" + outName
+	}
+
+	nm := strings.Join(args, " ")
+	if id != "" || nm != "" {
+		if err := createMap(txm, recs, nm); err != nil {
+			return errors.Wrap(err, c.Name())
+		}
+		return nil
+	}
+	if err := read(txm, recs); err != nil {
 		return errors.Wrap(err, c.Name())
+	}
+	return nil
+}
+
+func read(txm biodv.Taxonomy, recs biodv.RecDB) error {
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
+		name := biodv.TaxCanon(s.Text())
+		if name == "" {
+			continue
+		}
+		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' || !unicode.IsLetter(nm) {
+			continue
+		}
+		if err := createMap(txm, recs, name); err != nil {
+			return err
+		}
+	}
+	return s.Err()
+}
+
+func createMap(txm biodv.Taxonomy, recs biodv.RecDB, name string) error {
+	tax, err := getTaxon(txm, name)
+	if err != nil {
+		return errors.Wrapf(err, "while serching for '%s'", name)
 	}
 	if tax == nil {
 		return nil
 	}
-
-	if outName == "" {
-		outName = strings.Join(strings.Fields(tax.Name()), "-") + "-map.png"
-	}
-
 	ls, err := searchPoints(tax.ID(), txm, recs)
 	if err != nil {
-		return errors.Wrap(err, c.Name())
+		return errors.Wrapf(err, "while aserching records for '%s'", tax.Name())
 	}
-
-	if err := makeMap(ls); err != nil {
-		return errors.Wrap(err, c.Name())
+	if len(ls) == 0 {
+		return nil
 	}
-	return nil
+	filename := strings.Join(strings.Fields(tax.Name()), "-") + outName
+	return makeMap(ls, filename)
 }
 
 // GetTaxon returns a taxon from the options.
@@ -285,11 +317,11 @@ func loadMap() (image.Image, error) {
 }
 
 // SaveMap saves the image map on the output file.
-func saveMap(dest *image.RGBA64) error {
-	if !strings.HasSuffix(outName, ".png") {
-		outName += ".png"
+func saveMap(dest *image.RGBA64, filename string) error {
+	if !strings.HasSuffix(filename, ".png") {
+		filename += ".png"
 	}
-	f, err := os.Create(outName)
+	f, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
@@ -305,7 +337,7 @@ type point struct {
 }
 
 // MakeMap prepares the output map.
-func makeMap(pts []point) error {
+func makeMap(pts []point, filename string) error {
 	src, err := loadMap()
 	if err != nil {
 		return err
@@ -361,11 +393,11 @@ func makeMap(pts []point) error {
 		drawPng(dest, pts, scaleX, scaleY, originX, originY)
 	}
 
-	if err := saveMap(dest); err != nil {
+	if err := saveMap(dest, filename); err != nil {
 		return err
 	}
-	fmt.Printf("# %d\n", len(pts))
-	fmt.Printf("%.6f,%.6f %.6f,%.6f\n", maxLat, minLon, minLat, maxLon)
+	fmt.Printf("# %s: %d\n", filename, len(pts))
+	fmt.Printf("%s: %.6f,%.6f %.6f,%.6f\n", filename, maxLat, minLon, minLat, maxLon)
 	return nil
 }
 
