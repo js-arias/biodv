@@ -474,17 +474,18 @@ Produce a map with georeferenced records
 Usage:
 
 	biodv rec.map [--db <database>] [--id <value>] [-e|--exact]
-		[-h|--heath] [-m|--map <imagemap>] [-o|--out <filename>]
+		[-h|--heath] [-m|--map <imagemap>] [-o|--out <suffix>]
 		[-s|--size <number>] [<name>]
 
 Command rec.map produces a image map using a provided image map, and the
-georeferenced records of the indicated taxon.
+georeferenced records of the indicated taxon. If no taxon or --id is
+given, it will make maps based on the name sgiven in the standard input.
 
 The image map is defined with the -m or --map option, and should be on
 equirectangular projection, and covering the whole planet. If no map is
 given, then a white backgound image will be used.
 
-The output map is defined with -o or --out option. If no file is given,
+The output map is defined with -o or --out option. If no suffix is given,
 it will create a new file with the name of the taxon, and adding the
 suffix '-map.png'. The output map is with png format, and it will be
 cropped to adjust the data.
@@ -616,7 +617,8 @@ Usage:
 		[-g|--georef] [-n|--noheader] [<name>]
 
 Command rec.table prints a table (separated by tabs) of the records of
-a given taxon in a given database.
+a given taxon in a given database.  If no taxon or --id is given, it will
+make the table based on the names given in the standard input.
 
 By default, records assigned to the given taxon (including synonyms and
 correct/valid children) will be printed. If the option -e or --exact is

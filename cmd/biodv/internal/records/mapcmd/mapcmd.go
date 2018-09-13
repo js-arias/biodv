@@ -34,7 +34,7 @@ var cmd = &cmdapp.Command{
 	Long: `
 Command rec.map produces a image map using a provided image map, and the
 georeferenced records of the indicated taxon. If no taxon or --id is
-given, it will make maps based on the name sgiven in the standard input.
+given, it will make maps based on the names given in the standard input.
 
 The image map is defined with the -m or --map option, and should be on
 equirectangular projection, and covering the whole planet. If no map is

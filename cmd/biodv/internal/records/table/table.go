@@ -9,11 +9,14 @@
 package table
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
@@ -27,7 +30,8 @@ var cmd = &cmdapp.Command{
 	Short: "print a table of records",
 	Long: `
 Command rec.table prints a table (separated by tabs) of the records of
-a given taxon in a given database.
+a given taxon in a given database.  If no taxon or --id is given, it will
+make the table based on the names given in the standard input.
 
 By default, records assigned to the given taxon (including synonyms and
 correct/valid children) will be printed. If the option -e or --exact is
@@ -113,11 +117,6 @@ func run(c *cmdapp.Command, args []string) error {
 	var param string
 	dbName, param = biodv.ParseDriverString(dbName)
 
-	nm := strings.Join(args, " ")
-	if id == "" && nm == "" {
-		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
-	}
-
 	txm, err := biodv.OpenTax(dbName, param)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
@@ -128,18 +127,47 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	tax, err := getTaxon(txm, nm)
+	w, err := setupTable()
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
-	if tax == nil {
+
+	nm := strings.Join(args, " ")
+	if id != "" || nm != "" {
+		if err := taxonTable(w, txm, recs, nm); err != nil {
+			return errors.Wrap(err, c.Name())
+		}
+		w.Flush()
+		if err := w.Error(); err != nil {
+			return errors.Wrap(err, c.Name())
+		}
 		return nil
 	}
-
-	if err := printTable(tax, txm, recs); err != nil {
+	if err := read(w, txm, recs); err != nil {
+		return errors.Wrap(err, c.Name())
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
 		return errors.Wrap(err, c.Name())
 	}
 	return nil
+}
+
+func read(w *csv.Writer, txm biodv.Taxonomy, recs biodv.RecDB) error {
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
+		name := biodv.TaxCanon(s.Text())
+		if name == "" {
+			continue
+		}
+		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' || !unicode.IsLetter(nm) {
+			continue
+		}
+		if err := taxonTable(w, txm, recs, name); err != nil {
+			return err
+		}
+	}
+	return s.Err()
 }
 
 // GetTaxon returns a taxon from the options.
@@ -169,22 +197,27 @@ func getTaxon(txm biodv.Taxonomy, nm string) (biodv.Taxon, error) {
 	return ls[0], nil
 }
 
-func printTable(tax biodv.Taxon, txm biodv.Taxonomy, recs biodv.RecDB) error {
+func setupTable() (*csv.Writer, error) {
 	w := csv.NewWriter(os.Stdout)
 	w.Comma = '\t'
 	w.UseCRLF = true
 	if !nohead {
 		if err := w.Write([]string{"ID", "Taxon", "Lat", "Lon", "Catalog"}); err != nil {
-			return err
+			return nil, err
 		}
 	}
+	return w, nil
+}
 
-	if err := printSearch(w, tax.ID(), txm, recs); err != nil {
-		return err
+func taxonTable(w *csv.Writer, txm biodv.Taxonomy, recs biodv.RecDB, name string) error {
+	tax, err := getTaxon(txm, name)
+	if err != nil {
+		return errors.Wrapf(err, "while searching for '%s'", name)
 	}
-
-	w.Flush()
-	return w.Error()
+	if tax == nil {
+		return nil
+	}
+	return printSearch(w, tax.ID(), txm, recs)
 }
 
 // PrintSearch search for the records of a given taxon
