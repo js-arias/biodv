@@ -112,8 +112,8 @@ type Record interface {
 const (
 	RecRef      = "reference"  // A bibliographic reference
 	RecDataset  = "dataset"    // Source of the specimen data
-	RecCatalog  = "catalog"    // museum catalog number
-	RecDeterm   = "determiner" // the person who identified the specimen
+	RecCatalog  = "catalog"    // Museum catalog number
+	RecDeterm   = "determiner" // The person who identified the specimen
 	RecExtern   = "extern"     // Extern IDs
 	RecComment  = "comment"    // A free text comment
 	RecOrganism = "organism"   // An ID of the organism
@@ -131,3 +131,37 @@ func ParseDriverString(str string) (driver, param string) {
 	}
 	return str[:i], str[i+1:]
 }
+
+// A SetDB is a dataset database.
+type SetDB interface {
+	// SetID returns the dataset with a given ID.
+	SetID(id string) (Dataset, error)
+}
+
+// A Dataset is a museum collection,
+// a published dataset,
+// or any other source of data.
+type Dataset interface {
+	// ID returns the ID of the current dataset.
+	ID() string
+
+	// Title returns the title of the dataset.
+	Title() string
+
+	// Keys returns a list of additional fields
+	// stored in the dataset.
+	Keys() []string
+
+	// Value returns the value
+	// of an additional field stored in the dataset.
+	Value(key string) string
+}
+
+// Common keys used for Dataset.
+const (
+	SetAbout     = "about"     // A text description of the dataset
+	SetRef       = "reference" // A bibliographic reference
+	SetLicense   = "license"   // License used for the data
+	SetURL       = "url"       // Homepage of the dataset
+	SetPublisher = "publisher" // The organization that publish the dataset
+)
