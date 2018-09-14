@@ -473,13 +473,14 @@ Produce a map with georeferenced records
 
 Usage:
 
-	biodv rec.map [--db <database>] [--id <value>] [-e|--exact]
+	biodv rec.map [--db <database>] [--id] [-e|--exact]
 		[-h|--heath] [-m|--map <imagemap>] [-o|--out <suffix>]
-		[-s|--size <number>] [<name>]
+		[-s|--size <number>] [<taxon>]
 
 Command rec.map produces a image map using a provided image map, and the
-georeferenced records of the indicated taxon. If no taxon or --id is
-given, it will make maps based on the names given in the standard input.
+georeferenced records of the indicated taxon. If no taxon is given, it
+will make maps based on the names, or IDs, if the option --id is set,
+given in the standard input.
 
 The image map is defined with the -m or --map option, and should be on
 equirectangular projection, and covering the whole planet. If no map is
@@ -513,9 +514,11 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The database should include drivers for a taxonomy and records.
 
-    -id <value>
-    --id <value>
-      If set, the map will be based on the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name. This will affect either if the taxon
+      is given on the command line, or read from the standard input.
 
     -e
     --exact
@@ -540,9 +543,11 @@ Options are:
     --size <number>
       Defines the size (in pixels) of each record in the map. Default = 2.
 
-    <name>
-     If set, the map will be based on the indicated taxon. If the
-     name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      If set, the map will be based on the indicated taxon. If the
+      name is ambiguous, the ID of the ambiguous taxa will be printed.
+      If the option --id is set, it must be a taxon ID instead of a
+      taxon name.
 
 Set an specimen record value
 
@@ -613,12 +618,12 @@ Print a table of records
 
 Usage:
 
-	biodv rec.table [--db <database>] [--id <value>] [-e|--exact]
-		[-g|--georef] [-n|--noheader] [<name>]
+	biodv rec.table [--db <database>] [--id] [-e|--exact]
+		[-g|--georef] [-n|--noheader] [<taxon>]
 
 Command rec.table prints a table (separated by tabs) of the records of
-a given taxon in a given database.  If no taxon or --id is given, it will
-make the table based on the names given in the standard input.
+a given taxon in a given database.  If no taxon is given, it will make
+the table based on the names given in the standard input.
 
 By default, records assigned to the given taxon (including synonyms and
 correct/valid children) will be printed. If the option -e or --exact is
@@ -645,9 +650,11 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The database should include drivers for a taxonomy and records.
 
-    -id <value>
-    --id <value>
-      If set, the table will be based on the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name. This will affect either if the taxon
+      is given on the command line, or read from the standard input.
 
     -e
     --exact
@@ -663,9 +670,11 @@ Options are:
     --noheader
       If set, the table will be printed without the columns header.
 
-    <name>
-     If set, the table will be based on the indicated taxon. If the
-     name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      If set, the table will be based on the indicated taxon. If the
+      name is ambiguous, the ID of the ambiguous taxa will be printed.
+      If the option --id is set, it must be a taxon ID instead of a
+      taxon name.
 
 Validate an specimen records database
 

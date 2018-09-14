@@ -78,10 +78,10 @@ Options are:
       If set, the table will be printed without the columns header.
 
     <taxon>
-     If set, the table will be based on the indicated taxon. If the
-     name is ambiguous, the ID of the ambiguous taxa will be printed.
-    If the option --id is set, it must be a taxon ID instead of a
-    taxon name.
+      If set, the table will be based on the indicated taxon. If the
+      name is ambiguous, the ID of the ambiguous taxa will be printed.
+      If the option --id is set, it must be a taxon ID instead of a
+      taxon name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
