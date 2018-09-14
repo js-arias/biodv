@@ -41,7 +41,6 @@ Options are:
       If set, the search of the taxon will be based on the taxon ID,
       instead of the taxon name.
 
-
     -f <value>
     --format <value>
       Sets the output format, by default it will use txt format.
@@ -52,7 +51,7 @@ Options are:
     <taxon>
       A required parameter. Indicates the taxon for which the taxonomy
       catalog of the taxon will be printed, if the name is ambiguous,
-      the ID of the ambigous taxa will be printed. If the option --id
+      the ID of the ambiguous taxa will be printed. If the option --id
       is set, it must be a taxon ID instead of a taxon name.
 	`,
 	Run:           run,
@@ -105,6 +104,9 @@ func run(c *cmdapp.Command, args []string) error {
 	tax, err := getTaxon(db, nm)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
+	}
+	if tax == nil {
+		return nil
 	}
 
 	if err := navigate(db, tax, biodv.Unranked); err != nil {
