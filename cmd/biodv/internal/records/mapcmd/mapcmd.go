@@ -17,7 +17,6 @@ import (
 	"image/png"
 	"os"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
@@ -27,14 +26,15 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: `rec.map [--db <database>] [--id <value>] [-e|--exact]
+	UsageLine: `rec.map [--db <database>] [--id] [-e|--exact]
 		[-h|--heath] [-m|--map <imagemap>] [-o|--out <suffix>]
-		[-s|--size <number>] [<name>]`,
+		[-s|--size <number>] [<taxon>]`,
 	Short: "produce a map with georeferenced records",
 	Long: `
 Command rec.map produces a image map using a provided image map, and the
-georeferenced records of the indicated taxon. If no taxon or --id is
-given, it will make maps based on the names given in the standard input.
+georeferenced records of the indicated taxon. If no taxon is given, it
+will make maps based on the names, or IDs, if the option --id is set,
+given in the standard input.
 
 The image map is defined with the -m or --map option, and should be on
 equirectangular projection, and covering the whole planet. If no map is
@@ -68,9 +68,11 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The database should include drivers for a taxonomy and records.
 
-    -id <value>
-    --id <value>
-      If set, the map will be based on the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name. This will affect either if the taxon
+      is given on the command line, or read from the standard input.
 
     -e
     --exact
@@ -95,9 +97,11 @@ Options are:
     --size <number>
       Defines the size (in pixels) of each record in the map. Default = 2.
 
-    <name>
-     If set, the map will be based on the indicated taxon. If the
-     name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      If set, the map will be based on the indicated taxon. If the
+      name is ambiguous, the ID of the ambiguous taxa will be printed.
+      If the option --id is set, it must be a taxon ID instead of a
+      taxon name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
@@ -108,7 +112,7 @@ func init() {
 }
 
 var dbName string
-var id string
+var id bool
 var exact bool
 var heathOp bool
 var mapName string
@@ -117,7 +121,7 @@ var recSize int
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "biodv", "")
-	c.Flag.StringVar(&id, "id", "", "")
+	c.Flag.BoolVar(&id, "id", false, "")
 	c.Flag.BoolVar(&exact, "exact", false, "")
 	c.Flag.BoolVar(&exact, "e", false, "")
 	c.Flag.BoolVar(&heathOp, "heath", false, "")
@@ -158,7 +162,7 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 
 	nm := strings.Join(args, " ")
-	if id != "" || nm != "" {
+	if nm != "" {
 		if err := createMap(txm, recs, nm); err != nil {
 			return errors.Wrap(err, c.Name())
 		}
@@ -177,7 +181,7 @@ func read(txm biodv.Taxonomy, recs biodv.RecDB) error {
 		if name == "" {
 			continue
 		}
-		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' || !unicode.IsLetter(nm) {
+		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' {
 			continue
 		}
 		if err := createMap(txm, recs, name); err != nil {
@@ -208,8 +212,8 @@ func createMap(txm biodv.Taxonomy, recs biodv.RecDB, name string) error {
 
 // GetTaxon returns a taxon from the options.
 func getTaxon(txm biodv.Taxonomy, nm string) (biodv.Taxon, error) {
-	if id != "" {
-		return txm.TaxID(id)
+	if id {
+		return txm.TaxID(nm)
 	}
 	ls, err := biodv.TaxList(txm.Taxon(nm))
 	if err != nil {
