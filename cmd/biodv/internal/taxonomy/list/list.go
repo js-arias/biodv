@@ -71,7 +71,7 @@ Options are:
 
     <taxon>
       A required parameter. Indicates the taxon for which the list will
-      be printed. If the name is ambiguous, the ID of the ambigous taxa
+      be printed. If the name is ambiguous, the ID of the ambiguous taxa
       will be printed. If the option --id is set, it must be a taxon ID
       instead of a taxon name.
 	`,

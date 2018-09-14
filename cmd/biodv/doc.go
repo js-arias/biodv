@@ -479,7 +479,7 @@ Usage:
 
 Command rec.map produces a image map using a provided image map, and the
 georeferenced records of the indicated taxon. If no taxon or --id is
-given, it will make maps based on the name sgiven in the standard input.
+given, it will make maps based on the names given in the standard input.
 
 The image map is defined with the -m or --map option, and should be on
 equirectangular projection, and covering the whole planet. If no map is
@@ -877,8 +877,8 @@ Print a taxonomic catalog
 
 Usage:
 
-	biodv tax.catalog [--db <database>] [-f|--format <value>]
-		[--id <value>] [<name>]
+	biodv tax.catalog [--db <database>] [--id]
+	[-f|--format <value>] <taxon>
 
 Command tax.catalog prints the taxonomy of the indicated taxon in the
 format of a simple taxonomic catalog.
@@ -891,11 +891,10 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, the taxonomy catalog of the indicated taxon will be
-      printed.
-
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
     -f <value>
     --format <value>
@@ -904,9 +903,11 @@ Options are:
           txt	text format
           html	html format
 
-    <name>
-      If set, the taxonomy catalog of the taxon will be printed, if the
-      name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the taxonomy
+      catalog of the taxon will be printed, if the name is ambiguous,
+      the ID of the ambiguous taxa will be printed. If the option --id
+      is set, it must be a taxon ID instead of a taxon name.
 
 Add taxons validated on an external DB
 
@@ -1090,12 +1091,13 @@ Print taxon information
 
 Usage:
 
-	biodv tax.info [--db <database>] [--id <value>] [<name>]
+	biodv tax.info [--db <database>] [--id] <taxon>
 
-Command tax.info prints the information data available for a taxon name, in
+Command tax.info prints the information data available for a taxon in
 a given database.
 
-Either a taxon name, of a database id, should be used.
+Either a taxon name, or, if the option --id is set, a taxon ID, should
+be defined.
 
 Options are:
 
@@ -1106,21 +1108,23 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, the information of the indicated taxon will be printed.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
-    <name>
-      If set, the information taxon with the given name will be printed,
-      if the name is ambiguous, the ID of the ambigous taxa will be
-      printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the information
+      will be printed. If the name is ambiguous, the ID of the ambiguous
+      taxa will be printed. If the option --id is set, it must be a taxon
+      ID instead of a name.
 
 Print a list of taxons
 
 Usage:
 
-	biodv tax.list [--db <database>] [--id <value>] [-m|--machine]
-		[-p|--parents] [-s|--synonym] [-v|--verbose] [<name>]
+	biodv tax.list [--db <database>] [--id] [-m|--machine]
+		[-p|--parents] [-s|--synonym] [-v|--verbose] [<taxon>]
 
 Command tax.list prints a list of the contained taxa of a given taxon
 in a given database.
@@ -1144,9 +1148,10 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, the list will be based on the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
     -m
     --machine
@@ -1166,9 +1171,11 @@ Options are:
       If set, the list will produced indicating the ID, the taxon
       name, and the author of the taxon.
 
-    <name>
-      If set, the list will be based on the indicated taxon, if the
-      name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the list will
+      be printed. If the name is ambiguous, the ID of the ambiguous taxa
+      will be printed. If the option --id is set, it must be a taxon ID
+      instead of a taxon name.
 
 Change a taxon parent
 
@@ -1297,8 +1304,8 @@ Get a taxon data value
 
 Usage:
 
-	biodv tax.value [--db <database>] [--id <value>]
-		[-k|--key <key>] <name>
+	biodv tax.value [--db <database>] [--id] [-k|--key <key>]
+		<taxon>
 
 Command tax.value prints the value of a given key for the indicated
 taxon. If no key is given, a list of available keys for the indicated
@@ -1313,17 +1320,20 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, then it will search the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
     -k <key>
     --key <key>
       If set, the value of the indicated key will be printed.
 
-    <name>
-      If set, the indicated taxon will be searched. If the name is
-      ambiguous, the ID of the ambiguous taxa will be printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the value
+      will be printed. If the name is ambiguous, the ID of the ambiguous
+      taxa will be printed. If the option --id is set, it must be a
+      taxon ID instead of a taxon name.
 
 Taxonomy database
 
