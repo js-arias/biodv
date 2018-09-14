@@ -15,7 +15,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/js-arias/biodv"
@@ -25,13 +24,13 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: `rec.table [--db <database>] [--id <value>] [-e|--exact]
-		[-g|--georef] [-n|--noheader] [<name>]`,
+	UsageLine: `rec.table [--db <database>] [--id] [-e|--exact]
+		[-g|--georef] [-n|--noheader] [<taxon>]`,
 	Short: "print a table of records",
 	Long: `
 Command rec.table prints a table (separated by tabs) of the records of
-a given taxon in a given database.  If no taxon or --id is given, it will
-make the table based on the names given in the standard input.
+a given taxon in a given database.  If no taxon is given, it will make
+the table based on the names given in the standard input.
 
 By default, records assigned to the given taxon (including synonyms and
 correct/valid children) will be printed. If the option -e or --exact is
@@ -58,9 +57,11 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The database should include drivers for a taxonomy and records.
 
-    -id <value>
-    --id <value>
-      If set, the table will be based on the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name. This will affect either if the taxon
+      is given on the command line, or read from the standard input.
 
     -e
     --exact
@@ -76,9 +77,11 @@ Options are:
     --noheader
       If set, the table will be printed without the columns header.
 
-    <name>
+    <taxon>
      If set, the table will be based on the indicated taxon. If the
-     name is ambiguous, the ID of the ambigous taxa will be printed.
+     name is ambiguous, the ID of the ambiguous taxa will be printed.
+    If the option --id is set, it must be a taxon ID instead of a
+    taxon name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
@@ -89,14 +92,14 @@ func init() {
 }
 
 var dbName string
-var id string
+var id bool
 var exact bool
 var georef bool
 var nohead bool
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "biodv", "")
-	c.Flag.StringVar(&id, "id", "", "")
+	c.Flag.BoolVar(&id, "id", false, "")
 	c.Flag.BoolVar(&exact, "exact", false, "")
 	c.Flag.BoolVar(&exact, "e", false, "")
 	c.Flag.BoolVar(&georef, "georef", false, "")
@@ -133,7 +136,7 @@ func run(c *cmdapp.Command, args []string) error {
 	}
 
 	nm := strings.Join(args, " ")
-	if id != "" || nm != "" {
+	if nm != "" {
 		if err := taxonTable(w, txm, recs, nm); err != nil {
 			return errors.Wrap(err, c.Name())
 		}
@@ -160,7 +163,7 @@ func read(w *csv.Writer, txm biodv.Taxonomy, recs biodv.RecDB) error {
 		if name == "" {
 			continue
 		}
-		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' || !unicode.IsLetter(nm) {
+		if nm, _ := utf8.DecodeRuneInString(name); nm == '#' || nm == ';' {
 			continue
 		}
 		if err := taxonTable(w, txm, recs, name); err != nil {
@@ -172,8 +175,8 @@ func read(w *csv.Writer, txm biodv.Taxonomy, recs biodv.RecDB) error {
 
 // GetTaxon returns a taxon from the options.
 func getTaxon(txm biodv.Taxonomy, nm string) (biodv.Taxon, error) {
-	if id != "" {
-		return txm.TaxID(id)
+	if id {
+		return txm.TaxID(nm)
 	}
 	ls, err := biodv.TaxList(txm.Taxon(nm))
 	if err != nil {
