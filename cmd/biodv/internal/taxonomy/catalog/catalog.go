@@ -21,8 +21,8 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: `tax.catalog [--db <database>] [-f|--format <value>]
-		[--id <value>] [<name>]`,
+	UsageLine: `tax.catalog [--db <database>] [--id]
+	[-f|--format <value>] <taxon>`,
 	Short: "print a taxonomic catalog",
 	Long: `
 Command tax.catalog prints the taxonomy of the indicated taxon in the
@@ -36,10 +36,10 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, the taxonomy catalog of the indicated taxon will be
-      printed.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
 
     -f <value>
@@ -49,9 +49,11 @@ Options are:
           txt	text format
           html	html format
 
-    <name>
-      If set, the taxonomy catalog of the taxon will be printed, if the
-      name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the taxonomy
+      catalog of the taxon will be printed, if the name is ambiguous,
+      the ID of the ambigous taxa will be printed. If the option --id
+      is set, it must be a taxon ID instead of a taxon name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
@@ -62,12 +64,12 @@ func init() {
 }
 
 var dbName string
-var id string
+var id bool
 var format string
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "biodv", "")
-	c.Flag.StringVar(&id, "id", "", "")
+	c.Flag.BoolVar(&id, "id", false, "")
 	c.Flag.StringVar(&format, "format", "txt", "")
 	c.Flag.StringVar(&format, "f", "txt", "")
 }
@@ -80,8 +82,8 @@ func run(c *cmdapp.Command, args []string) error {
 	dbName, param = biodv.ParseDriverString(dbName)
 
 	nm := strings.Join(args, " ")
-	if id == "" && nm == "" {
-		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
+	if nm == "" {
+		return errors.Errorf("%s: a taxon name or ID, should be given", c.Name())
 	}
 
 	format = strings.ToLower(format)
@@ -113,8 +115,8 @@ func run(c *cmdapp.Command, args []string) error {
 
 // GetTaxon returns a taxon from the options.
 func getTaxon(db biodv.Taxonomy, nm string) (biodv.Taxon, error) {
-	if id != "" {
-		return db.TaxID(id)
+	if id {
+		return db.TaxID(nm)
 	}
 	ls, err := biodv.TaxList(db.Taxon(nm))
 	if err != nil {
