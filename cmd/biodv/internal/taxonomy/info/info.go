@@ -20,13 +20,14 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: "tax.info [--db <database>] [--id <value>] [<name>]",
+	UsageLine: "tax.info [--db <database>] [--id] <taxon>",
 	Short:     "print taxon information",
 	Long: `
-Command tax.info prints the information data available for a taxon name, in
+Command tax.info prints the information data available for a taxon in
 a given database.
 
-Either a taxon name, of a database id, should be used.
+Either a taxon name, or, if the option --id is set, a taxon ID, should
+be defined.
 
 Options are:
 
@@ -37,14 +38,16 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, the information of the indicated taxon will be printed.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
-    <name>
-      If set, the information taxon with the given name will be printed,
-      if the name is ambiguous, the ID of the ambigous taxa will be
-      printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the information
+      will be printed. If the name is ambiguous, the ID of the ambiguous
+      taxa will be printed. If the option --id is set, it must be a taxon
+      ID instead of a name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
@@ -55,11 +58,11 @@ func init() {
 }
 
 var dbName string
-var id string
+var id bool
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "biodv", "")
-	c.Flag.StringVar(&id, "id", "", "")
+	c.Flag.BoolVar(&id, "id", false, "")
 }
 
 func run(c *cmdapp.Command, args []string) error {
@@ -70,8 +73,8 @@ func run(c *cmdapp.Command, args []string) error {
 	dbName, param = biodv.ParseDriverString(dbName)
 
 	nm := strings.Join(args, " ")
-	if id == "" && nm == "" {
-		return errors.Errorf("%s: either a --id or a taxon name, should be given", c.Name())
+	if nm == "" {
+		return errors.Errorf("%s: a taxon name of ID should be given", c.Name())
 	}
 
 	db, err := biodv.OpenTax(dbName, param)
@@ -79,39 +82,42 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	var tax biodv.Taxon
-	if id != "" {
-		tax, err = db.TaxID(id)
-		if err != nil {
-			return errors.Wrap(err, c.Name())
-		}
-	} else {
-		ls, err := biodv.TaxList(db.Taxon(nm))
-		if err != nil {
-			return errors.Wrap(err, c.Name())
-		}
-		if len(ls) == 0 {
-			return nil
-		}
-		if len(ls) > 1 {
-			fmt.Fprintf(os.Stderr, "ambiguous name:\n")
-			for _, tx := range ls {
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
-				if tx.IsCorrect() {
-					fmt.Fprintf(os.Stderr, "correct name\n")
-				} else {
-					fmt.Fprintf(os.Stderr, "synonym\n")
-				}
-			}
-			return nil
-		}
-		tax = ls[0]
+	tax, err := getTaxon(db, nm)
+	if err != nil {
+		return errors.Wrap(err, c.Name())
 	}
 
 	if err := print(db, tax); err != nil {
 		return errors.Wrap(err, c.Name())
 	}
 	return nil
+}
+
+// GetTaxon returns a taxon from the options.
+func getTaxon(db biodv.Taxonomy, nm string) (biodv.Taxon, error) {
+	if id {
+		return db.TaxID(nm)
+	}
+	ls, err := biodv.TaxList(db.Taxon(nm))
+	if err != nil {
+		return nil, err
+	}
+	if len(ls) == 0 {
+		return nil, nil
+	}
+	if len(ls) > 1 {
+		fmt.Fprintf(os.Stderr, "ambiguous name:\n")
+		for _, tx := range ls {
+			fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
+			if tx.IsCorrect() {
+				fmt.Fprintf(os.Stderr, "correct name\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "synonym\n")
+			}
+		}
+		return nil, nil
+	}
+	return ls[0], nil
 }
 
 func print(db biodv.Taxonomy, tax biodv.Taxon) error {
