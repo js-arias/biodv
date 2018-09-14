@@ -20,8 +20,8 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: `tax.list [--db <database>] [--id <value>] [-m|--machine]
-		[-p|--parents] [-s|--synonym] [-v|--verbose] [<name>]`,
+	UsageLine: `tax.list [--db <database>] [--id] [-m|--machine]
+		[-p|--parents] [-s|--synonym] [-v|--verbose] [<taxon>]`,
 	Short: "print a list of taxons",
 	Long: `
 Command tax.list prints a list of the contained taxa of a given taxon
@@ -46,9 +46,10 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, the list will be based on the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
     -m
     --machine
@@ -68,9 +69,11 @@ Options are:
       If set, the list will produced indicating the ID, the taxon
       name, and the author of the taxon.
 
-    <name>
-      If set, the list will be based on the indicated taxon, if the
-      name is ambiguous, the ID of the ambigous taxa will be printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the list will
+      be printed. If the name is ambiguous, the ID of the ambigous taxa
+      will be printed. If the option --id is set, it must be a taxon ID
+      instead of a taxon name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
@@ -81,7 +84,7 @@ func init() {
 }
 
 var dbName string
-var id string
+var id bool
 var machine bool
 var parents bool
 var synonyms bool
@@ -89,7 +92,7 @@ var verbose bool
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "", "")
-	c.Flag.StringVar(&id, "id", "", "")
+	c.Flag.BoolVar(&id, "id", false, "")
 	c.Flag.BoolVar(&machine, "machine", false, "")
 	c.Flag.BoolVar(&machine, "m", false, "")
 	c.Flag.BoolVar(&parents, "parents", false, "")
@@ -119,31 +122,20 @@ func run(c *cmdapp.Command, args []string) error {
 		return errors.Wrap(err, c.Name())
 	}
 
-	nm := strings.Join(args, " ")
-	if nm != "" && id == "" {
-		ls, err := biodv.TaxList(db.Taxon(nm))
+	idVal := strings.Join(args, "")
+	if !id && len(args) >= 1 {
+		nm := strings.Join(args, " ")
+		tax, err := getTaxon(db, nm)
 		if err != nil {
 			return errors.Wrap(err, c.Name())
 		}
-		if len(ls) == 0 {
+		if tax == nil {
 			return nil
 		}
-		if len(ls) > 1 {
-			fmt.Fprintf(os.Stderr, "ambiguous name:\n")
-			for _, tx := range ls {
-				fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
-				if tx.IsCorrect() {
-					fmt.Fprintf(os.Stderr, "correct name\n")
-				} else {
-					fmt.Fprintf(os.Stderr, "synonym\n")
-				}
-			}
-			return nil
-		}
-		id = ls[0].ID()
+		idVal = tax.ID()
 	}
 
-	ls, err := getList(db)
+	ls, err := getList(db, idVal)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
@@ -152,12 +144,36 @@ func run(c *cmdapp.Command, args []string) error {
 	return nil
 }
 
-func getList(db biodv.Taxonomy) ([]biodv.Taxon, error) {
+// GetTaxon returns a taxon from the options.
+func getTaxon(db biodv.Taxonomy, nm string) (biodv.Taxon, error) {
+	ls, err := biodv.TaxList(db.Taxon(nm))
+	if err != nil {
+		return nil, err
+	}
+	if len(ls) == 0 {
+		return nil, nil
+	}
+	if len(ls) > 1 {
+		fmt.Fprintf(os.Stderr, "ambiguous name:\n")
+		for _, tx := range ls {
+			fmt.Fprintf(os.Stderr, "id:%s\t%s %s\t", tx.ID(), tx.Name(), tx.Value(biodv.TaxAuthor))
+			if tx.IsCorrect() {
+				fmt.Fprintf(os.Stderr, "correct name\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "synonym\n")
+			}
+		}
+		return nil, nil
+	}
+	return ls[0], nil
+}
+
+func getList(db biodv.Taxonomy, idVal string) ([]biodv.Taxon, error) {
 	if synonyms {
-		if id == "" {
+		if idVal == "" {
 			return nil, errors.New("a taxon must be defined for a synonyms list")
 		}
-		ls, err := biodv.TaxList(db.Synonyms(id))
+		ls, err := biodv.TaxList(db.Synonyms(idVal))
 		if err != nil {
 			return nil, err
 		}
@@ -165,17 +181,17 @@ func getList(db biodv.Taxonomy) ([]biodv.Taxon, error) {
 	}
 
 	if parents {
-		if id == "" {
+		if idVal == "" {
 			return nil, errors.New("a taxon must be defined for a parent list")
 		}
-		ls, err := biodv.TaxParents(db, id)
+		ls, err := biodv.TaxParents(db, idVal)
 		if err != nil {
 			return nil, err
 		}
 		return ls, nil
 	}
 
-	return biodv.TaxList(db.Children(id))
+	return biodv.TaxList(db.Children(idVal))
 }
 
 func printList(ls []biodv.Taxon) {
