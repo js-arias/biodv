@@ -20,8 +20,8 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: `tax.value [--db <database>] [--id <value>]
-		[-k|--key <key>] <name>`,
+	UsageLine: `tax.value [--db <database>] [--id] [-k|--key <key>]
+		<taxon>`,
 	Short: "get a taxon data value",
 	Long: `
 Command tax.value prints the value of a given key for the indicated
@@ -37,17 +37,20 @@ Options are:
       To see the available databases use the command ‘db.drivers’.
       The default biodv database on the current directory.
 
-    -id <value>
-    --id <value>
-      If set, then it will search the indicated taxon.
+    -id
+    --id
+      If set, the search of the taxon will be based on the taxon ID,
+      instead of the taxon name.
 
     -k <key>
     --key <key>
       If set, the value of the indicated key will be printed.
 
-    <name>
-      If set, the indicated taxon will be searched. If the name is
-      ambiguous, the ID of the ambiguous taxa will be printed.
+    <taxon>
+      A required parameter. Indicates the taxon for which the value
+      will be printed. If the name is ambiguous, the ID of the ambiguous
+      taxa will be printed. If the option --id is set, it must be a
+      taxon ID instead of a taxon name.
 	`,
 	Run:           run,
 	RegisterFlags: register,
@@ -58,12 +61,12 @@ func init() {
 }
 
 var dbName string
-var id string
+var id bool
 var key string
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "biodv", "")
-	c.Flag.StringVar(&id, "id", "", "")
+	c.Flag.BoolVar(&id, "id", false, "")
 	c.Flag.StringVar(&key, "key", "", "")
 	c.Flag.StringVar(&key, "k", "", "")
 }
@@ -77,6 +80,9 @@ func run(c *cmdapp.Command, args []string) error {
 	tax, err := getTaxon(nm)
 	if err != nil {
 		return errors.Wrap(err, c.Name())
+	}
+	if tax == nil {
+		return nil
 	}
 
 	if key == "" {
@@ -111,7 +117,7 @@ func run(c *cmdapp.Command, args []string) error {
 
 // GetTaxon returns a taxon from the options.
 func getTaxon(nm string) (biodv.Taxon, error) {
-	if id == "" && nm == "" {
+	if nm == "" {
 		return nil, errors.New("either a --id or a taxon name, should be given")
 	}
 
@@ -123,8 +129,8 @@ func getTaxon(nm string) (biodv.Taxon, error) {
 		return nil, err
 	}
 
-	if id != "" {
-		return db.TaxID(id)
+	if id {
+		return db.TaxID(nm)
 	}
 	ls, err := biodv.TaxList(db.Taxon(nm))
 	if err != nil {
