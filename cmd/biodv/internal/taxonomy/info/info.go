@@ -86,6 +86,9 @@ func run(c *cmdapp.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
+	if tax == nil {
+		return nil
+	}
 
 	if err := print(db, tax); err != nil {
 		return errors.Wrap(err, c.Name())
