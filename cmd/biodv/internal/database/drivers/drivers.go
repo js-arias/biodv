@@ -17,49 +17,53 @@ import (
 )
 
 var cmd = &cmdapp.Command{
-	UsageLine: "db.drivers [-d|--database <database>]",
+	UsageLine: "db.drivers [<database>]",
 	Short:     "list the database drivers",
 	Long: `
 Command db.drivers prints a list of available drivers, sorted by the
-kind of the database used. If the -d or --atabase option is given, only
-the drivers for that database will be printed.
+kind of the database used. If a <database> is given, only the drivers
+for that database will be printed.
 
 Options are:
 
-    -d <database>
-    --database <database>
+    <database>
       If set, only the drivers of the given database kind will be
       printed.
       Valid database kinds are:
+      	dataset   dataset databases
         records   specimen record databases
         taxonomy  taxonomic names databases
 	`,
-	Run:           run,
-	RegisterFlags: register,
+	Run: run,
 }
 
 func init() {
 	cmdapp.Add(cmd)
 }
 
-var dbKind string
-
-func register(c *cmdapp.Command) {
-	c.Flag.StringVar(&dbKind, "database", "", "")
-	c.Flag.StringVar(&dbKind, "d", "", "")
-}
-
 func run(c *cmdapp.Command, args []string) error {
-	switch strings.ToLower(dbKind) {
+	dbKind := strings.ToLower(strings.Join(args, ""))
+	switch dbKind {
 	case "records":
 		recDrivers()
 	case "taxonomy":
 		taxDrivers()
+	case "dataset":
+		setDrivers()
 	default:
+		setDrivers()
 		recDrivers()
 		taxDrivers()
 	}
 	return nil
+}
+
+func setDrivers() {
+	ls := biodv.SetDrivers()
+	fmt.Printf("Dataset-DB drivers:\n")
+	for _, dv := range ls {
+		fmt.Printf("    %-16s %s\n", dv, biodv.SetAbout(dv))
+	}
 }
 
 func recDrivers() {
