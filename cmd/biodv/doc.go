@@ -23,6 +23,7 @@ The commands are:
     rec.table        print a table of records
     rec.validate     validate an specimen records database
     rec.value        get an specimen record value
+    set.info         print dataset information
     tax.add          add taxon names
     tax.catalog      print a taxonomic catalog
     tax.db.add       add taxons validated on an external DB
@@ -89,19 +90,19 @@ List the database drivers
 
 Usage:
 
-	biodv db.drivers [-d|--database <database>]
+	biodv db.drivers [<database>]
 
 Command db.drivers prints a list of available drivers, sorted by the
-kind of the database used. If the -d or --atabase option is given, only
-the drivers for that database will be printed.
+kind of the database used. If a <database> is given, only the drivers
+for that database will be printed.
 
 Options are:
 
-    -d <database>
-    --database <database>
+    <database>
       If set, only the drivers of the given database kind will be
       printed.
       Valid database kinds are:
+      	dataset   dataset databases
         records   specimen record databases
         taxonomy  taxonomic names databases
 
@@ -772,6 +773,26 @@ The following fields are recognized by the biodv records commands:
 Most biodv commands assume that the specimen records datafiles are well
 formatted. In the case of an untrusted database, it can be validated with
 the command rec.validate.
+
+Print dataset information
+
+Usage:
+
+	biodv set.info [-db <database>] <value>
+
+Command set.info prints the information data available for a dataset,
+in a given database.
+
+Options are:
+
+    -db <database>
+    --db <database>
+      If set, the indicated database will be used to extract the
+      dataset information.
+      To see the available databases use the command ‘db.drivers’.
+
+    <value>
+      The ID of the dataset.
 
 Stanza file format
 
