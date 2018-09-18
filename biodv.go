@@ -159,9 +159,9 @@ type Dataset interface {
 
 // Common keys used for Dataset.
 const (
-	SetAbout     = "about"     // A text description of the dataset
+	SetAboutKey  = "about"     // A text description of the dataset
 	SetRef       = "reference" // A bibliographic reference
 	SetLicense   = "license"   // License used for the data
-	SetURL       = "url"       // Homepage of the dataset
+	SetURLKey    = "url"       // Homepage of the dataset
 	SetPublisher = "publisher" // The organization that publish the dataset
 )
