@@ -64,7 +64,7 @@ type citation struct {
 
 type contact struct {
 	Type         string
-	Homepage     string
+	Homepage     []string
 	Organization string
 }
 
@@ -107,8 +107,8 @@ func (ds *dataset) Value(key string) string {
 		if ds.Homepage != "" {
 			return ds.Homepage
 		}
-		if c := ds.bestContact(); c.Homepage != "" {
-			return c.Homepage
+		if c := ds.bestContact(); len(c.Homepage) > 0 {
+			return c.Homepage[0]
 		}
 		return SetURL(ds.Key)
 	case biodv.SetPublisher:
