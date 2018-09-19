@@ -8,6 +8,8 @@ package dataset
 
 import (
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -21,6 +23,7 @@ import (
 // from a dataset file,
 // in stanza format.
 type Scanner struct {
+	f   *os.File
 	sc  *stanza.Scanner
 	rec map[string]string
 	err error
@@ -67,6 +70,37 @@ func NewScanner(r io.Reader) *Scanner {
 	return &Scanner{sc: stanza.NewScanner(r)}
 }
 
+// OpenScanner returns a scanner
+// that reads from a dataset file
+// on a given path.
+func OpenScanner(path string) *Scanner {
+	file := filepath.Join(path, setDir, setFile)
+	f, err := os.Open(file)
+	if err != nil {
+		return &Scanner{err: io.EOF}
+	}
+	return &Scanner{
+		sc: stanza.NewScanner(f),
+		f:  f,
+	}
+}
+
+// Close closes the scanner,
+// preventing further enumeration.
+//
+// If Scan returns false,
+// the scanner is closed automatically
+// and it will siffice to checl the result of Err.
+func (sc *Scanner) Close() {
+	if sc.err == io.EOF {
+		return
+	}
+	if sc.f != nil {
+		sc.f.Close()
+	}
+	sc.err = io.EOF
+}
+
 // Err returns the error,
 // if any,
 // that was encountered during iteration.
@@ -108,6 +142,7 @@ func (sc *Scanner) Scan() bool {
 		}
 		rec := sc.sc.Record()
 		if rec[titleKey] == "" {
+			sc.Close()
 			sc.err = errors.Errorf("dataset: scanner: empty dataset title")
 			return false
 		}
@@ -115,9 +150,10 @@ func (sc *Scanner) Scan() bool {
 		return true
 	}
 	if err := sc.sc.Err(); err != nil {
+		sc.Close()
 		sc.err = errors.Wrap(err, "dataset: scanner")
 		return false
 	}
-	sc.err = io.EOF
+	sc.Close()
 	return false
 }

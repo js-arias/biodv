@@ -8,6 +8,10 @@
 // a database of dataset metadata.
 package dataset
 
+// Default database directory and file.
+const setDir = "sources"
+const setFile = "dataset.stz"
+
 // Basic keys for dataset database.
 const (
 	titleKey = "title"
