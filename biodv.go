@@ -160,6 +160,7 @@ type Dataset interface {
 // Common keys used for Dataset.
 const (
 	SetAboutKey  = "about"     // A text description of the dataset
+	SetExtern    = "extern"    // Extern IDs
 	SetRef       = "reference" // A bibliographic reference
 	SetLicense   = "license"   // License used for the data
 	SetURLKey    = "url"       // Homepage of the dataset
