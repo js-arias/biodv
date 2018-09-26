@@ -6,11 +6,7 @@
 
 package dataset
 
-import (
-	"testing"
-
-	"github.com/js-arias/biodv"
-)
+import "testing"
 
 var testData = []struct {
 	title   string
@@ -21,8 +17,6 @@ var testData = []struct {
 	{"NMNH Extant Specimen Records", "CC0-1.0", "National Museum of Natural History, Smithsonian Institution"},
 	{"Geographically tagged INSDC sequences", "CC BY 4.0", "European Bioinformatics Institute (EMBL-EBI)"},
 }
-
-var _ biodv.SetDB = &DB{}
 
 func TestAdd(t *testing.T) {
 	db := &DB{ids: make(map[string]*Dataset)}

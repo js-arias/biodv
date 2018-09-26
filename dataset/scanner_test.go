@@ -58,3 +58,20 @@ func TestScan(t *testing.T) {
 		t.Errorf("found %d records, want %d", i, len(testData))
 	}
 }
+
+func TestDBScan(t *testing.T) {
+	db := &DB{ids: make(map[string]*Dataset)}
+
+	sc := NewScanner(strings.NewReader(scannerBlob))
+	if err := db.scan(sc); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	set, _ := db.SetID("gbif:821cc27a-e3bb-4bc5-ac34-89ada245069d")
+	if set == nil {
+		t.Errorf("no dataset assocaited with key: \"gbif:821cc27a-e3bb-4bc5-ac34-89ada245069d\"")
+	}
+	set, _ = db.SetID("GBIF Backbone Taxonomy")
+	if v := set.Value(biodv.SetExtern); v != "gbif:d7dddbf4-2cf0-4f39-9b2a-bb099caae36c" {
+		t.Errorf("set %q extern %q, want %q", set.Title(), v, "gbif:d7dddbf4-2cf0-4f39-9b2a-bb099caae36c")
+	}
+}
