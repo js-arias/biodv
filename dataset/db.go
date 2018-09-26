@@ -11,6 +11,8 @@ package dataset
 import (
 	"strings"
 
+	"github.com/js-arias/biodv"
+
 	"github.com/pkg/errors"
 )
 
@@ -25,10 +27,23 @@ const (
 
 // DB is a dataset metadata database,
 // for reading and writing data.
+// DB implements the biodv.SetDB interface.
 type DB struct {
 	path    string
 	ids     map[string]*Dataset
 	changed bool // true if the database was modified
+}
+
+// SetID returns a dataset with a given ID.
+func (db *DB) SetID(id string) (biodv.Dataset, error) {
+	id = strings.Join(strings.Fields(id), " ")
+	if id == "" {
+		return nil, errors.New("dataset: db: set: empty set ID")
+	}
+	if set, ok := db.ids[id]; ok {
+		return set, nil
+	}
+	return nil, nil
 }
 
 // Dataset is a dataset metadata stored in a DB.

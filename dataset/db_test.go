@@ -22,7 +22,7 @@ var testData = []struct {
 	{"Geographically tagged INSDC sequences", "CC BY 4.0", "European Bioinformatics Institute (EMBL-EBI)"},
 }
 
-var _ biodv.Dataset = &Dataset{}
+var _ biodv.SetDB = &DB{}
 
 func TestAdd(t *testing.T) {
 	db := &DB{ids: make(map[string]*Dataset)}
@@ -44,6 +44,19 @@ func TestAdd(t *testing.T) {
 		}
 		if set.Title() != d.title {
 			t.Errorf("title %q, want %q", set.ID(), d.title)
+		}
+	}
+
+	for _, d := range testData {
+		set, err := db.SetID(d.title)
+		if err != nil {
+			t.Errorf("when looking for %q: %v", d.title, err)
+		}
+		if set == nil {
+			t.Errorf("when looking for %q: no dataset retrieved", d.title)
+		}
+		if set.Title() != d.title {
+			t.Errorf("dataset %q, want %q", set.Title(), d.title)
 		}
 	}
 
