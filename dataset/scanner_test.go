@@ -13,16 +13,6 @@ import (
 	"github.com/js-arias/biodv"
 )
 
-var testData = []struct {
-	title   string
-	license string
-	pub     string
-}{
-	{"GBIF Backbone Taxonomy", "CC BY 4.0", ""},
-	{"NMNH Extant Specimen Records", "CC0-1.0", "National Museum of Natural History, Smithsonian Institution"},
-	{"Geographically tagged INSDC sequences", "CC BY 4.0", "European Bioinformatics Institute (EMBL-EBI)"},
-}
-
 var scannerBlob = `
 title:	GBIF Backbone Taxonomy
 about:	The GBIF Backbone Taxonomy, often called the Nub taxonomy.

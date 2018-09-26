@@ -8,6 +8,12 @@
 // a database of dataset metadata.
 package dataset
 
+import (
+	"strings"
+
+	"github.com/pkg/errors"
+)
+
 // Default database directory and file.
 const setDir = "sources"
 const setFile = "dataset.stz"
@@ -16,3 +22,59 @@ const setFile = "dataset.stz"
 const (
 	titleKey = "title"
 )
+
+// DB is a dataset metadata database,
+// for reading and writing data.
+type DB struct {
+	path    string
+	ids     map[string]*Dataset
+	changed bool // true if the database was modified
+}
+
+// Dataset is a dataset metadata stored in a DB.
+// Dataset implements the biodv.Dataset interface.
+type Dataset struct {
+	db   *DB
+	data map[string]string
+}
+
+// ID returns the ID of the dataset
+func (set *Dataset) ID() string {
+	return dataset(set.data).ID()
+}
+
+// Title returns the title of the dataset.
+func (set *Dataset) Title() string {
+	return dataset(set.data).Title()
+}
+
+// Keys return the list of additional fields
+// stored in the dataset metadata.
+func (set *Dataset) Keys() []string {
+	return dataset(set.data).Keys()
+}
+
+// Value returns the value
+// of the indicated key stored in the dataset metadata.
+func (set *Dataset) Value(key string) string {
+	return dataset(set.data).Value(key)
+}
+
+// Add adds a new dataset metadata to the DB.
+func (db *DB) Add(title string) (*Dataset, error) {
+	title = strings.Join(strings.Fields(title), " ")
+	if title == "" {
+		return nil, errors.New("dataset: db: add: empty dataset name")
+	}
+	if _, dup := db.ids[title]; dup {
+		return nil, errors.New("dataset: db: add %q: dataset already in database")
+	}
+	set := &Dataset{
+		db:   db,
+		data: make(map[string]string),
+	}
+	set.data[titleKey] = title
+	db.ids[title] = set
+	db.changed = true
+	return set, nil
+}
