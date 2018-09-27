@@ -36,6 +36,9 @@ type DB struct {
 }
 
 // SetID returns a dataset with a given ID.
+// This function is for compatibility with biodv.SetDB interface.
+//
+// When using an editable DB prefer SetEd.
 func (db *DB) SetID(id string) (biodv.Dataset, error) {
 	id = strings.Join(strings.Fields(id), " ")
 	if id == "" {
@@ -45,6 +48,18 @@ func (db *DB) SetID(id string) (biodv.Dataset, error) {
 		return set, nil
 	}
 	return nil, nil
+}
+
+// SetEd returns an editable dataset.
+func (db *DB) SetEd(id string) *Dataset {
+	id = strings.Join(strings.Fields(id), " ")
+	if id == "" {
+		return nil
+	}
+	if set, ok := db.ids[id]; ok {
+		return set
+	}
+	return nil
 }
 
 // Dataset is a dataset metadata stored in a DB.
