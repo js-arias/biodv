@@ -9,10 +9,13 @@
 package dataset
 
 import (
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/js-arias/biodv"
+	"github.com/js-arias/biodv/encoding/stanza"
 
 	"github.com/pkg/errors"
 )
@@ -178,6 +181,19 @@ func getService(id string) string {
 	return id[:i]
 }
 
+// Encode writes a dataset
+// into a stanza writer.
+func (set *Dataset) encode(w *stanza.Writer) error {
+	fields := []string{titleKey}
+	fields = append(fields, set.Keys()...)
+	w.SetFields(fields)
+
+	if err := w.Write(set.data); err != nil {
+		return errors.Wrapf(err, "unable to write %s", set.Title())
+	}
+	return nil
+}
+
 func init() {
 	biodv.RegisterSet("biodv", biodv.SetDriver{open, nil, aboutBiodv})
 }
@@ -244,4 +260,52 @@ func (db *DB) Add(title string) (*Dataset, error) {
 	db.ids[title] = set
 	db.changed = true
 	return set, nil
+}
+
+// Commit saves a dataset database to a file.
+func (db *DB) Commit() (err error) {
+	if !db.changed {
+		return nil
+	}
+
+	if _, err := os.Lstat(filepath.Join(db.path, setDir)); err != nil {
+		if err := os.Mkdir(filepath.Join(db.path, setDir), os.ModeDir|os.ModePerm); err != nil {
+			return errors.Wrapf(err, "dataset: db: commit: unable to create %s directory", setDir)
+		}
+	}
+
+	file := filepath.Join(db.path, setDir, setFile)
+	f, err := os.Create(file)
+	if err != nil {
+		return errors.Wrap(err, "dataset: db: commit")
+	}
+	defer func() {
+		e1 := f.Close()
+		if err == nil && e1 != nil {
+			err = errors.Wrap(e1, "dataset: db: commit")
+		}
+	}()
+
+	w := stanza.NewWriter(f)
+	defer w.Flush()
+
+	var ls []string
+	ids := make(map[string]bool)
+	for _, s := range db.ids {
+		if ids[s.ID()] {
+			continue
+		}
+		ls = append(ls, s.ID())
+		ids[s.ID()] = true
+	}
+	sort.Strings(ls)
+
+	for _, id := range ls {
+		s := db.ids[id]
+		if err := s.encode(w); err != nil {
+			return errors.Wrap(err, "dataset: db: commit")
+		}
+	}
+	db.changed = false
+	return
 }
