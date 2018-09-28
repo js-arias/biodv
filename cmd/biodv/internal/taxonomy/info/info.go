@@ -58,6 +58,7 @@ func init() {
 }
 
 var dbName string
+var param string
 var id bool
 
 func register(c *cmdapp.Command) {
@@ -69,7 +70,6 @@ func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
 		dbName = "biodv"
 	}
-	var param string
 	dbName, param = biodv.ParseDriverString(dbName)
 
 	nm := strings.Join(args, " ")
@@ -153,7 +153,10 @@ func print(db biodv.Taxonomy, tax biodv.Taxon) error {
 	if p != nil && tax.IsCorrect() {
 		fmt.Printf("\tParent: %s %s [%s:%s]\n", p.Name(), p.Value(biodv.TaxAuthor), dbName, p.ID())
 	}
-	return contained(db, tax)
+	if err := contained(db, tax); err != nil {
+		return err
+	}
+	return dataset(tax.Value(biodv.TaxSource))
 }
 
 func ids(tax biodv.Taxon) {
@@ -198,5 +201,33 @@ func contained(db biodv.Taxonomy, tax biodv.Taxon) error {
 			fmt.Fprintf(os.Stderr, "\t\t%s %s [%s:%s]\n", child.Name(), child.Value(biodv.TaxAuthor), dbName, child.ID())
 		}
 	}
+	return nil
+}
+
+func dataset(id string) error {
+	if id == "" {
+		return nil
+	}
+	var setDB biodv.SetDB
+	ls := biodv.SetDrivers()
+	for _, s := range ls {
+		if s == dbName {
+			var err error
+			setDB, err = biodv.OpenSet(dbName, param)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	if setDB == nil {
+		return nil
+	}
+
+	set, err := setDB.SetID(id)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Source:\t%s\n", set.Title())
 	return nil
 }
