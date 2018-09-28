@@ -17,6 +17,7 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
+	"github.com/js-arias/biodv/dataset"
 	"github.com/js-arias/biodv/taxonomy"
 
 	"github.com/pkg/errors"
@@ -66,6 +67,7 @@ func init() {
 }
 
 var extName string
+var param string
 var upRank string
 var mapParent map[string]string
 
@@ -80,25 +82,12 @@ func run(c *cmdapp.Command, args []string) (err error) {
 	if extName == "" {
 		return errors.Errorf("%s: an external database should be defined", c.Name())
 	}
-	var param string
 	extName, param = biodv.ParseDriverString(extName)
-	ext, err := biodv.OpenTax(extName, param)
-	if err != nil {
-		return errors.Wrap(err, c.Name())
-	}
 
-	db, err := taxonomy.Open("")
+	dbs, err := openDBs()
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
-	defer func() {
-		if err == nil {
-			err = db.Commit()
-		}
-		if err != nil {
-			err = errors.Wrap(err, c.Name())
-		}
-	}()
 
 	mapParent = make(map[string]string)
 
@@ -108,32 +97,86 @@ func run(c *cmdapp.Command, args []string) (err error) {
 		if rank == biodv.Unranked {
 			return err
 		}
-		upProc(db, ext, nm, rank)
+		upProc(dbs, nm, rank)
 		return err
 	}
 	if nm == "" {
-		ls := db.TaxList("")
+		ls := dbs.db.TaxList("")
 		for _, c := range ls {
-			fillTaxon(db, ext, c)
+			fillTaxon(dbs, c)
 		}
 		return err
 	}
 
-	tax := db.TaxEd(nm)
+	tax := dbs.db.TaxEd(nm)
 	if tax == nil {
 		return nil
 	}
-	fillTaxon(db, ext, tax)
-	return err
+	fillTaxon(dbs, tax)
+
+	if err := commit(dbs); err != nil {
+		return errors.Wrap(err, c.Name())
+	}
+	return nil
 }
 
-func upProc(db *taxonomy.DB, ext biodv.Taxonomy, nm string, rank biodv.Rank) {
+type databases struct {
+	db     *taxonomy.DB
+	sets   *dataset.DB
+	ext    biodv.Taxonomy
+	extSet biodv.SetDB
+}
+
+func openDBs() (*databases, error) {
+	dbs := &databases{}
+	extName, param = biodv.ParseDriverString(extName)
+	var err error
+	dbs.ext, err = biodv.OpenTax(extName, param)
+	if err != nil {
+		return nil, err
+	}
+
+	dbs.db, err = taxonomy.Open("")
+	if err != nil {
+		return nil, err
+	}
+
+	ls := biodv.SetDrivers()
+	for _, s := range ls {
+		if s == extName {
+			dbs.extSet, err = biodv.OpenSet(extName, param)
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+	if dbs.extSet == nil {
+		return dbs, nil
+	}
+	dbs.sets, err = dataset.Open("")
+	if err != nil {
+		return nil, err
+	}
+	return dbs, nil
+}
+
+func commit(dbs *databases) error {
+	if dbs.sets != nil {
+		if err := dbs.sets.Commit(); err != nil {
+			return err
+		}
+	}
+	return dbs.db.Commit()
+}
+
+func upProc(dbs *databases, nm string, rank biodv.Rank) {
 	if nm == "" {
 		for {
-			ls := db.TaxList("")
+			ls := dbs.db.TaxList("")
 			ok := true
 			for _, c := range ls {
-				if fillUp(db, ext, c, rank) != nil {
+				if fillUp(dbs, c, rank) != nil {
 					ok = false
 				}
 			}
@@ -142,35 +185,35 @@ func upProc(db *taxonomy.DB, ext biodv.Taxonomy, nm string, rank biodv.Rank) {
 			}
 		}
 	}
-	tax := db.TaxEd(nm)
+	tax := dbs.db.TaxEd(nm)
 	for tax != nil {
-		tax = fillUp(db, ext, tax, rank)
+		tax = fillUp(dbs, tax, rank)
 	}
 }
 
-func fillUp(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon, rank biodv.Rank) *taxonomy.Taxon {
-	if getRank(db, tax) <= rank {
+func fillUp(dbs *databases, tax *taxonomy.Taxon, rank biodv.Rank) *taxonomy.Taxon {
+	if getRank(dbs.db, tax) <= rank {
 		return nil
 	}
-	p := db.TaxEd(tax.Parent())
+	p := dbs.db.TaxEd(tax.Parent())
 	if p != nil {
 		return p
 	}
 
-	epID := getExternParentID(ext, getExternID(tax), rank)
+	epID := getExternParentID(dbs.ext, getExternID(tax), rank)
 	if epID == "" {
 		return nil
 	}
-	p = db.TaxEd(extName + ":" + epID)
+	p = dbs.db.TaxEd(extName + ":" + epID)
 	if p == nil {
-		ep := getExternTaxon(ext, epID)
+		ep := getExternTaxon(dbs.ext, epID)
 		if ep == nil {
 			return nil
 		}
 		if ep.Rank() < rank && ep.Rank() != biodv.Unranked {
 			return nil
 		}
-		p = addExtern(db, ep, "")
+		p = addExtern(dbs, ep, "")
 		if p == nil {
 			return nil
 		}
@@ -217,12 +260,12 @@ func getExternTaxon(ext biodv.Taxonomy, id string) biodv.Taxon {
 	return tx
 }
 
-func fillTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
+func fillTaxon(dbs *databases, tax *taxonomy.Taxon) {
 	// fill descendants
 	defer func() {
-		desc := db.TaxList(tax.ID())
+		desc := dbs.db.TaxList(tax.ID())
 		for _, d := range desc {
-			fillTaxon(db, ext, d)
+			fillTaxon(dbs, d)
 		}
 	}()
 
@@ -233,26 +276,26 @@ func fillTaxon(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 
 	// add children,
 	// only if it at or below species.
-	if getRank(db, tax) >= biodv.Species {
-		ls, err := biodv.TaxList(ext.Children(eid))
+	if getRank(dbs.db, tax) >= biodv.Species {
+		ls, err := biodv.TaxList(dbs.ext.Children(eid))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: when looking for %s children: %v\n", tax.Name(), err)
 		}
-		fillList(db, tax, ls)
+		fillList(dbs, tax, ls)
 	}
 
 	// add synonyms
-	ls, err := biodv.TaxList(ext.Synonyms(eid))
+	ls, err := biodv.TaxList(dbs.ext.Synonyms(eid))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when looking for %s synonyms: %v\n", tax.Name(), err)
 	}
-	fillList(db, tax, ls)
+	fillList(dbs, tax, ls)
 }
 
-func fillList(db *taxonomy.DB, tax *taxonomy.Taxon, ls []biodv.Taxon) {
+func fillList(dbs *databases, tax *taxonomy.Taxon, ls []biodv.Taxon) {
 	for _, d := range ls {
 		// skip taxons already in database
-		if tx, _ := db.TaxID(extName + ":" + d.ID()); tx != nil {
+		if tx, _ := dbs.db.TaxID(extName + ":" + d.ID()); tx != nil {
 			continue
 		}
 		// skip taxons with invalid names,
@@ -261,12 +304,12 @@ func fillList(db *taxonomy.DB, tax *taxonomy.Taxon, ls []biodv.Taxon) {
 			continue
 		}
 
-		addExtern(db, d, tax.ID())
+		addExtern(dbs, d, tax.ID())
 	}
 }
 
-func addExtern(db *taxonomy.DB, tx biodv.Taxon, parent string) *taxonomy.Taxon {
-	tax, err := db.Add(tx.Name(), parent, tx.Rank(), tx.IsCorrect())
+func addExtern(dbs *databases, tx biodv.Taxon, parent string) *taxonomy.Taxon {
+	tax, err := dbs.db.Add(tx.Name(), parent, tx.Rank(), tx.IsCorrect())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when adding %q [%s:%s] to %q: %v\n", tx.Name(), extName, tx.ID(), parent, err)
 		return nil
@@ -274,7 +317,7 @@ func addExtern(db *taxonomy.DB, tx biodv.Taxon, parent string) *taxonomy.Taxon {
 	if err := tax.Set(biodv.TaxExtern, extName+":"+tx.ID()); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when matching %s: %v\n", tax.Name(), err)
 	}
-	update(tax, tx)
+	update(dbs, tax, tx)
 	return tax
 }
 
@@ -290,11 +333,14 @@ func getRank(db *taxonomy.DB, tax *taxonomy.Taxon) biodv.Rank {
 	return biodv.Unranked
 }
 
-func update(tax *taxonomy.Taxon, tx biodv.Taxon) {
+func update(dbs *databases, tax *taxonomy.Taxon, tx biodv.Taxon) {
 	for _, k := range tx.Keys() {
 		v := tx.Value(k)
 		if k == biodv.TaxSource {
-			v = extName + ":" + v
+			if err := addDataset(dbs, tax, v); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: when updating %s: %v\n", tax.Name(), err)
+			}
+			continue
 		}
 		if err := tax.Set(k, v); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: when updating %s: %v\n", tax.Name(), err)
@@ -314,4 +360,35 @@ func getExternID(tax *taxonomy.Taxon) string {
 		}
 	}
 	return ""
+}
+
+func addDataset(dbs *databases, tax *taxonomy.Taxon, id string) error {
+	if id == "" {
+		return nil
+	}
+	set := dbs.sets.SetEd(extName + ":" + id)
+	if set != nil {
+		return tax.Set(biodv.TaxSource, set.ID())
+	}
+
+	// Adds the new set
+	src, err := dbs.extSet.SetID(id)
+	if err != nil {
+		return err
+	}
+	if src == nil {
+		return nil
+	}
+	set, err = dbs.sets.Add(src.Title())
+	if err != nil {
+		return err
+	}
+	set.Set(biodv.SetExtern, extName+":"+src.ID())
+	for _, k := range src.Keys() {
+		v := src.Value(k)
+		if err := set.Set(k, v); err != nil {
+			return err
+		}
+	}
+	return tax.Set(biodv.TaxSource, set.ID())
 }
