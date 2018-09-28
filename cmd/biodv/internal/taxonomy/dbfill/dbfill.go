@@ -88,6 +88,14 @@ func run(c *cmdapp.Command, args []string) (err error) {
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
+	defer func() {
+		if err == nil {
+			err = commit(dbs)
+		}
+		if err != nil {
+			err = errors.Wrap(err, c.Name())
+		}
+	}()
 
 	mapParent = make(map[string]string)
 
@@ -113,10 +121,6 @@ func run(c *cmdapp.Command, args []string) (err error) {
 		return nil
 	}
 	fillTaxon(dbs, tax)
-
-	if err := commit(dbs); err != nil {
-		return errors.Wrap(err, c.Name())
-	}
 	return nil
 }
 
