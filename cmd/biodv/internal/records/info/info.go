@@ -45,6 +45,7 @@ func init() {
 }
 
 var dbName string
+var param string
 
 func register(c *cmdapp.Command) {
 	c.Flag.StringVar(&dbName, "db", "biodv", "")
@@ -54,7 +55,6 @@ func run(c *cmdapp.Command, args []string) error {
 	if dbName == "" {
 		dbName = "biodv"
 	}
-	var param string
 	dbName, param = biodv.ParseDriverString(dbName)
 
 	if len(args) != 1 {
@@ -115,7 +115,7 @@ func print(txm biodv.Taxonomy, rc biodv.Record) error {
 	}
 
 	printValues(rc)
-	return nil
+	return dataset(rc.Value(biodv.RecDataset))
 }
 
 func printTaxon(txm biodv.Taxonomy, rc biodv.Record) error {
@@ -203,10 +203,41 @@ func printValues(rc biodv.Record) {
 		if k == biodv.RecExtern || k == biodv.RecCatalog {
 			continue
 		}
+		if k == biodv.RecDataset {
+			continue
+		}
 		v := rc.Value(k)
 		if v == "" {
 			continue
 		}
 		fmt.Printf("%s: %s\n", k, v)
 	}
+}
+
+func dataset(id string) error {
+	if id == "" {
+		return nil
+	}
+	var setDB biodv.SetDB
+	ls := biodv.SetDrivers()
+	for _, s := range ls {
+		if s == dbName {
+			var err error
+			setDB, err = biodv.OpenSet(dbName, param)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	if setDB == nil {
+		return nil
+	}
+
+	set, err := setDB.SetID(id)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Source:\t%s\n", set.Title())
+	return nil
 }
