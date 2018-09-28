@@ -15,6 +15,7 @@ import (
 
 	"github.com/js-arias/biodv"
 	"github.com/js-arias/biodv/cmdapp"
+	"github.com/js-arias/biodv/dataset"
 	"github.com/js-arias/biodv/taxonomy"
 
 	"github.com/pkg/errors"
@@ -51,6 +52,7 @@ func init() {
 }
 
 var extName string
+var param string
 var extTaxons map[string]externTaxon
 var toMove map[string]bool
 var reRank map[string]bool
@@ -65,20 +67,14 @@ func run(c *cmdapp.Command, args []string) (err error) {
 	if extName == "" {
 		return errors.Errorf("%s: an external database should be defined", c.Name())
 	}
-	var param string
-	extName, param = biodv.ParseDriverString(extName)
-	ext, err := biodv.OpenTax(extName, param)
-	if err != nil {
-		return errors.Wrap(err, c.Name())
-	}
 
-	db, err := taxonomy.Open("")
+	dbs, err := openDBs()
 	if err != nil {
 		return errors.Wrap(err, c.Name())
 	}
 	defer func() {
 		if err == nil {
-			err = db.Commit()
+			err = commit(dbs)
 		}
 		if err != nil {
 			err = errors.Wrap(err, c.Name())
@@ -91,37 +87,87 @@ func run(c *cmdapp.Command, args []string) (err error) {
 
 	nm := strings.Join(args, " ")
 	if nm == "" {
-		ls := db.TaxList("")
+		ls := dbs.db.TaxList("")
 		for _, c := range ls {
-			addTaxons(db, ext, c)
+			addTaxons(dbs, c)
 		}
 	} else {
-		tax := db.TaxEd(nm)
+		tax := dbs.db.TaxEd(nm)
 		if tax == nil {
 			return err
 		}
-		addTaxons(db, ext, tax)
+		addTaxons(dbs, tax)
 	}
 
-	if err = makeMoves(db, ext); err != nil {
+	if err = makeMoves(dbs); err != nil {
 		return err
 	}
-	if err = makeRankUpdates(db); err != nil {
+	if err = makeRankUpdates(dbs.db); err != nil {
 		return err
 	}
 	return err
 }
 
+type databases struct {
+	db     *taxonomy.DB
+	sets   *dataset.DB
+	ext    biodv.Taxonomy
+	extSet biodv.SetDB
+}
+
+func openDBs() (*databases, error) {
+	dbs := &databases{}
+	extName, param = biodv.ParseDriverString(extName)
+	var err error
+	dbs.ext, err = biodv.OpenTax(extName, param)
+	if err != nil {
+		return nil, err
+	}
+
+	dbs.db, err = taxonomy.Open("")
+	if err != nil {
+		return nil, err
+	}
+
+	ls := biodv.SetDrivers()
+	for _, s := range ls {
+		if s == extName {
+			dbs.extSet, err = biodv.OpenSet(extName, param)
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+	if dbs.extSet == nil {
+		return dbs, nil
+	}
+	dbs.sets, err = dataset.Open("")
+	if err != nil {
+		return nil, err
+	}
+	return dbs, nil
+}
+
+func commit(dbs *databases) error {
+	if dbs.sets != nil {
+		if err := dbs.sets.Commit(); err != nil {
+			return err
+		}
+	}
+	return dbs.db.Commit()
+}
+
 // MakeMoves make all movements
-func makeMoves(db *taxonomy.DB, ext biodv.Taxonomy) error {
+func makeMoves(dbs *databases) error {
 	for i := 0; i < maxIts; i++ {
 		if len(toMove) == 0 {
 			break
 		}
 		del := make(map[string]bool)
 		for id := range toMove {
-			tax := db.TaxEd(id)
-			if move(db, ext, tax) {
+			tax := dbs.db.TaxEd(id)
+			if move(dbs, tax) {
 				del[id] = true
 			}
 		}
@@ -174,8 +220,8 @@ type externTaxon struct {
 // if they are to be reranked,
 // set a new status
 // or moved to a new parent.
-func addTaxons(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
-	tx, ok := getExternTaxon(ext, getExternID(tax))
+func addTaxons(dbs *databases, tax *taxonomy.Taxon) {
+	tx, ok := getExternTaxon(dbs.ext, getExternID(tax))
 	if ok {
 		if tx.rank != tax.Rank() {
 			toMove[tax.ID()] = true
@@ -190,15 +236,15 @@ func addTaxons(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 			toMove[tax.ID()] = true
 		}
 		if tx.parent != "" {
-			p := db.TaxEd(extName + ":" + tx.parent)
+			p := dbs.db.TaxEd(extName + ":" + tx.parent)
 			if p != nil && p.ID() != tax.Parent() {
 				toMove[tax.ID()] = true
 			}
 		}
 	}
 
-	for _, d := range db.TaxList(tax.ID()) {
-		addTaxons(db, ext, d)
+	for _, d := range dbs.db.TaxList(tax.ID()) {
+		addTaxons(dbs, d)
 	}
 }
 
@@ -206,7 +252,7 @@ func addTaxons(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) {
 // If the taxon is set as a synonym,
 // then it will add the new parent,
 // if it does not exist.
-func move(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) bool {
+func move(dbs *databases, tax *taxonomy.Taxon) bool {
 	tx, ok := extTaxons[getExternID(tax)]
 	if !ok {
 		return true
@@ -214,9 +260,9 @@ func move(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) bool {
 
 	var p *taxonomy.Taxon
 	if !tx.correct {
-		p = getSeniorTaxon(db, ext, tx.parent)
+		p = getSeniorTaxon(dbs, tx.parent)
 	} else {
-		p = db.TaxEd(extName + ":" + tx.parent)
+		p = dbs.db.TaxEd(extName + ":" + tx.parent)
 	}
 	if p == nil {
 		return true
@@ -230,12 +276,12 @@ func move(db *taxonomy.DB, ext biodv.Taxonomy, tax *taxonomy.Taxon) bool {
 	return true
 }
 
-func getSeniorTaxon(db *taxonomy.DB, ext biodv.Taxonomy, parent string) *taxonomy.Taxon {
-	p := db.TaxEd(extName + ":" + parent)
+func getSeniorTaxon(dbs *databases, parent string) *taxonomy.Taxon {
+	p := dbs.db.TaxEd(extName + ":" + parent)
 	if p != nil {
 		return p
 	}
-	et, err := ext.TaxID(parent)
+	et, err := dbs.ext.TaxID(parent)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when looking for %s:%s: %v\n", extName, parent, err)
 		return nil
@@ -250,18 +296,18 @@ func getSeniorTaxon(db *taxonomy.DB, ext biodv.Taxonomy, parent string) *taxonom
 	// but it was not matched
 	// or matched to another taxon,
 	// so it can be say that is the same taxon.
-	p = db.TaxEd(et.Name())
+	p = dbs.db.TaxEd(et.Name())
 	if p != nil {
 		fmt.Fprintf(os.Stderr, "warning: ambiguous parent %q [%s:%s], on DB [%s:%s]", et.Name(), extName, et.ID(), extName, getExternID(p))
 		return nil
 	}
 
 	pID := ""
-	if gp := db.TaxEd(extName + ":" + et.Parent()); gp != nil {
+	if gp := dbs.db.TaxEd(extName + ":" + et.Parent()); gp != nil {
 		pID = gp.ID()
 	}
 
-	p, err = db.Add(et.Name(), pID, et.Rank(), et.IsCorrect())
+	p, err = dbs.db.Add(et.Name(), pID, et.Rank(), et.IsCorrect())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: when adding %q [%s:%s] to %q: %v\n", et.Name(), extName, et.ID(), pID, err)
 		return nil
@@ -272,7 +318,10 @@ func getSeniorTaxon(db *taxonomy.DB, ext biodv.Taxonomy, parent string) *taxonom
 	for _, k := range et.Keys() {
 		v := et.Value(k)
 		if k == biodv.TaxSource {
-			v = extName + ":" + v
+			if err := addDataset(dbs, p, v); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: when updating %s: %v\n", p.Name(), err)
+			}
+			continue
 		}
 		if err := p.Set(k, v); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: when updating %s: %v\n", p.Name(), err)
@@ -324,4 +373,35 @@ func getExternID(tax *taxonomy.Taxon) string {
 		}
 	}
 	return ""
+}
+
+func addDataset(dbs *databases, tax *taxonomy.Taxon, id string) error {
+	if id == "" {
+		return nil
+	}
+	set := dbs.sets.SetEd(extName + ":" + id)
+	if set != nil {
+		return tax.Set(biodv.TaxSource, set.ID())
+	}
+
+	// Adds the new set
+	src, err := dbs.extSet.SetID(id)
+	if err != nil {
+		return err
+	}
+	if src == nil {
+		return nil
+	}
+	set, err = dbs.sets.Add(src.Title())
+	if err != nil {
+		return err
+	}
+	set.Set(biodv.SetExtern, extName+":"+src.ID())
+	for _, k := range src.Keys() {
+		v := src.Value(k)
+		if err := set.Set(k, v); err != nil {
+			return err
+		}
+	}
+	return tax.Set(biodv.TaxSource, set.ID())
 }
