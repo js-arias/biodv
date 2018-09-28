@@ -250,7 +250,7 @@ func (db *DB) Add(title string) (*Dataset, error) {
 		return nil, errors.New("dataset: db: add: empty dataset name")
 	}
 	if _, dup := db.ids[title]; dup {
-		return nil, errors.New("dataset: db: add %q: dataset already in database")
+		return nil, errors.Errorf("dataset: db: add %q: dataset already in database", title)
 	}
 	set := &Dataset{
 		db:   db,
